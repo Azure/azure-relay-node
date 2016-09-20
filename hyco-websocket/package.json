@@ -1,0 +1,45 @@
+{
+  "name": "hyco-websocket",
+  "description": "",
+  "keywords": [
+    "websocket",
+    "websockets",
+    "socket",
+    "networking",
+    "comet",
+    "push",
+    "RFC-6455",
+    "realtime",
+    "server",
+    "client"
+  ],
+  "author": "",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/clemensv/azure-relay-hybridconnections.git"
+  },
+  "homepage": "https://azure.com",
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "dependencies": {
+    "wait.for" : "latest",
+    "websocket": "latest",
+    "crypto": "latest",
+    "moment": "latest"
+  },
+  "devDependencies": {
+  },
+  "config": {
+    "verbose": false
+  },
+  "scripts": {
+    
+  },
+  "main": "index",
+  "directories": {
+    "lib": "./lib"
+  },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "node-websocket-tunnel",
+  "version": "1.0.0",
+  "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/clemensv/node-websocket-tunnel.git"
+    },
+  "dependencies": {
+    "optimist": "^0.3.1",
+    "websocket": "^1.0.4",
+    "wordwrap": "^0.0.2"
+  }
+}

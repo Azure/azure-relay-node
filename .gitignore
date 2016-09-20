@@ -1,0 +1,14 @@
+.vscode
+.vscode/*
+
+# Build and package folders
+###################
+build
+dist
+packages
+typings
+.tmp
+
+# Node 
+###################
+node_modules
