@@ -41,7 +41,7 @@ server side-by-side from within the same application. The "websocket"/"hyco-webs
 experience is analogous and explained in the module's README.   
 
 ``` JS
-    var WebSocket = require('hyco-ws')
+    var WebSocket = require('hyco-ws');
 
     var wss = WebSocket.RelayedServer(
         {
@@ -71,20 +71,26 @@ connection requests across the connected listeners. which also provides an easy 
 You don't have to do anything to enable this, just have multiple listeners share the same path.   
 
 Clients connect to the server through the Relay service on the same path the listener is listening 
-on. The client uses the regular WebSocket protocol.
-three      
+on. The client uses the regular WebSocket protocol. WebSocket subprotocols and extensions can 
+be negotiated between client and the Web Socket server end-to-end as you would without the Relay.
+
+If the Relay requires a sender token (which is the default), that token can be included either 
+as a query parameter ('token') or with the 'ServiceBusAuthorization' HTTP header. The latter is
+preferred; mostly since URLs end up in many logs.  
+
+``` JS
+  var WebSocket = require('hyco-ws');
+
+  var opt = { headers : { 'ServiceBusAuthorization' : token}};
+  var address = WebSocket.createRelaySendUri(ns, path),
+
+  var client = new WebSocket(address, null, opt);
+  client.on('open', function(wss) {
+       wss.send("Hi!); 
+  });  
+
+```
+
 
 ## Modules
-
-This repository hosts two different modules for Node that integrate with the Hybrid Connections
-feature. The modules are designed to act, as much as possible, as contract-compatible drop-in 
-replacements for two of the most popular existing WebSocket modules in the Node universe: 
-"ws" and "websocket". "Contract-compatible" means that you can take nearly any existing module or 
-app that uses either library and convert it to work through the Hybrid Connections relay with
-minimal changes.  
-
-### Functional principles
-
-The functional principle  
-
 
