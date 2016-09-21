@@ -31,6 +31,7 @@ var HybridConnectionsWebSocketServer = function HybridConnectionsWebSocketServer
     // Superclass Constructor
     EventEmitter.call(this);
 
+    this.closeRequested = false;
     this._handlers = {
         requestAccepted: this.handleRequestAccepted.bind(this),
         requestResolved: this.handleRequestResolved.bind(this)
@@ -139,6 +140,14 @@ HybridConnectionsWebSocketServer.prototype.open = function (config) {
     }
 };
 
+HybridConnectionsWebSocketServer.prototype.close = function () {
+    this.closeRequested = true;
+    if ( this.controlChannel ) {
+        this.controlChannel.close();
+    }
+    this.closeAllConnections();
+};
+
 HybridConnectionsWebSocketServer.prototype.closeAllConnections = function () {
     this.connections.forEach(function (connection) {
         connection.close();
@@ -213,7 +222,8 @@ function connectControlChannel(server) {
             if (!closeRequested) {
                 connectControlChannel(server);
             } else {
-                server.emit('close', server);
+                server.controlChannel = null;
+                server.emit('close', server);                
             }
 
         });
