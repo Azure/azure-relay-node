@@ -1,0 +1,11 @@
+{
+  "author": "",
+  "name": "simple",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/clemensv/azure-hybridconnections.git"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {}
+}

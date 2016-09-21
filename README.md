@@ -1,24 +1,24 @@
 # Azure Relay Hybrid Connections for Node.JS
 
-This repository contains Node modules and samples for the Hybrid Connections feature of the 
+This repository contains Node packages and samples for the Hybrid Connections feature of the 
 Microsoft Azure Relay, a capability pilar of the Azure Service Bus platform.
 
-Azure Relay is one of the key capability pillars of the Azure Service Bus platform. Hybrid 
-Connections is a secure, open-protocol evolution of the existing Relay service that has been 
-available in Azure since the beginning. Hybrid Connections is based on HTTP and WebSockets.
+Hybrid Connections is a secure, open-protocol evolution of the existing Service Bus Relay 
+service that has been available in Azure since the beginning and handles millions of connections 
+daily. 
 
 Hybrid Connections allows establishing bi-directional, binary stream communication between 
 two networked applications, whereby either or both of the parties can reside behind NATs or 
-Firewalls.
+Firewalls. Hybrid Connections is based on HTTP(S) and WebSockets.
 
-## Functional Principles
+## How it works
 
 For Node, the code in the repository allows a **publicly discoverable and reachable** WebSocket 
 server to be hosted on any machine that has outbound access to the Internet, and 
 specifically to the Microsoft Azure Relay service in the chosen region, via HTTPS port 443. 
   
 The WebSocket server code will look instantly familiar as it is directly based on and integrated 
-with the most most popular existing WebSocket modules in the Node universe: "ws" and "websocket". 
+with two of the most popular existing WebSocket packages in the Node universe: "ws" and "websocket". 
 
 ``` JS
 
@@ -28,17 +28,20 @@ require('websocket') ==> require('hyco-websocket')
 ```
 
 As you create a WebSocket server using either of the alternate "hyco-ws" and "hyco-websocket" 
-modules from this repository, the server will not listen on a TCP port on the local network, 
+packages from this repository, the server will not listen on a TCP port on the local network, 
 but rather delegate listening to a configured Hybrid Connection path the Azure Relay service 
-in Service Bus. That listener connection is automatically TLS/SSL protected without you having 
-to juggle any certificates.
+in Service Bus. The delegation happens by ways of opening and maintaining a "control connection"
+WebSocket that remains opened and reconnects automatically when dropped inadvertently. This 
+listener connection is automatically TLS/SSL protected without you having to juggle any certificates.
 
-The example below shows the "ws"/"hyco-ws" variant of creating a server. The API is usage is 
-completely "normal" except for using the "hyco-ws" module and creating an instance of the
+### Servers
+
+The snippet below shows the "ws"/"hyco-ws" variant of creating a server. The API is usage is 
+completely "normal" except for using the "hyco-ws" package and creating an instance of the
 *RelayedServer* instead of *Server*. The default underlying *Server* class remains fully available 
 when using "hyco-ws" instead of "ws", meaning you can host a relayed and a local WebSocket 
 server side-by-side from within the same application. The "websocket"/"hyco-websocket" 
-experience is analogous and explained in the module's README.   
+experience is analogous and explained in the package's README.   
 
 ``` JS
     var WebSocket = require('hyco-ws');
@@ -74,8 +77,19 @@ Clients connect to the server through the Relay service on the same path the lis
 on. The client uses the regular WebSocket protocol. WebSocket subprotocols and extensions can 
 be negotiated between client and the Web Socket server end-to-end as you would without the Relay.
 
+What happens under the covers, as you can find if you poke around in the code of the two packages, is 
+that any connection that is from a client to the Relay service will be announced to the Listener 
+with a control message over the open control channel. The control message contains information about 
+a "rendezvous endpoint" that is valid for a brief period. The server framework will decide whether
+to accept the incoming connection, potentially including calling some extensibility hooks, and
+then open an outbound WebSocket to the rendezvous endpoint. The client WebSocket and this "data"
+WenSocket are then bound into a single end-to-end connection by the Relay service, behaving like
+a single WebSocket.    
+
+### Clients
+
 If the Relay requires a sender token (which is the default), that token can be included either 
-as a query parameter ('token') or with the 'ServiceBusAuthorization' HTTP header. The latter is
+as a query parameter ('sb-hc-token') or with the 'ServiceBusAuthorization' HTTP header. The latter is
 preferred; mostly since URLs end up in many logs.  
 
 ``` JS
@@ -91,6 +105,46 @@ preferred; mostly since URLs end up in many logs.
 
 ```
 
+The standard WebSocket client that is built into current browsers doesn't support setting 
+the headers for the HTTP handshake, so you'll have to use the query string parameter. The 
+snippet below is from the modified "serverstats" sample included in this repo that leans 
+on the similar sample from the "ws" package. The placeholders in the WebSocket URI are 
+replaced with the correct values for namespace, path, and token using a template engine. 
 
-## Modules
+``` HTML
+   <script>
+      function updateStats(memuse) {
+        document.getElementById('rss').innerHTML = memuse.rss;
+        document.getElementById('heapTotal').innerHTML = memuse.heapTotal;
+        document.getElementById('heapUsed').innerHTML = memuse.heapUsed;
+      }
+
+      var host = window.document.location.host.replace(/:.*/, '');
+      var ws = new WebSocket('wss://{{ns}}:443/$servicebus/hybridconnection/{{path}}?'+
+                                'sb-hc-action=connect&sb-hc-token={{token}}');
+      ws.onmessage = function (event) {
+        updateStats(JSON.parse(event.data));
+      };
+    </script>
+``` 
+
+## packages
+
+The README documents for the two includes packages discuss the particular additions made 
+to accomodate support for Hybrid Connections. What's common for both libraries is that 
+you can use the 'hyco-ws' and the 'hyco-websocket' packages instead of the 'ws' and 'websocket'
+without losing any existing functionality. Both packages containe to expose the full and unaltered
+functionality of their respective base packages.
+
+* [README for hyco-ws](./hyco-ws/README.md)
+* [README for hyco-websocket](./hyco-websocket/README.md)    
+
+## Examples 
+
+The repo contains local examples at the package level and a few global examples. 
+[The global samples in /examples](/examples/README.md) use the latest, public, npm-published versions
+of the packages and require that you install all dependencies with "npm install". 
+
+The local examples under [hyco-ws](./hyco-ws) and [hyco-websocket](./hyco-websocket) reference the 
+code in your checked out repo.
 

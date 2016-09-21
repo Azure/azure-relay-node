@@ -1,8 +1,8 @@
 {
-  "author": "xyz",
+  "author": "Microsoft Corporation",
   "name": "hyco-ws",
   "description": "xyz",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "license": "MIT",
   "main": "index.js",
   "keywords": [
