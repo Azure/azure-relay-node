@@ -1,5 +1,10 @@
 # Azure Relay Hybrid Connections for Node.JS
 
+> **Private preview note:**
+> To use the included packages you need to reference them locally or publish 
+> them into a local NPM repository. They are not yet available from the public
+> NPM repositories. 
+
 This repository contains Node packages and samples for the Hybrid Connections feature of the 
 Microsoft Azure Relay, a capability pilar of the Azure Service Bus platform.
 
