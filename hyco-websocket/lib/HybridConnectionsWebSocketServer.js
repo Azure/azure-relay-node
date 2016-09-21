@@ -15,15 +15,16 @@
  *  limitations under the License.
  ***********************************************************************/
 
-var extend = require('./utils').extend;
-var utils = require('./utils');
-var util = require('util');
-var EventEmitter = require('events').EventEmitter;
-var WebSocketClient = require('websocket').client;
-var WebSocketRequest = require('./HybridConnectionsWebSocketRequest');
+const extend = require('./utils').extend;
+const utils = require('./utils');
+const util = require('util');
+const EventEmitter = require('events').EventEmitter;
+const WebSocketClient = require('websocket').client;
+const WebSocketRequest = require('./HybridConnectionsWebSocketRequest');
+const querystring = require('querystring');
 
 var isDefinedAndNonNull = function (options, key) {
-  return typeof options[key] != 'undefined' && options[key] !== null;
+    return typeof options[key] != 'undefined' && options[key] !== null;
 };
 
 var HybridConnectionsWebSocketServer = function HybridConnectionsWebSocketServer(config) {
@@ -43,15 +44,15 @@ var HybridConnectionsWebSocketServer = function HybridConnectionsWebSocketServer
 
 util.inherits(HybridConnectionsWebSocketServer, EventEmitter);
 
-HybridConnectionsWebSocketServer.prototype.open = function(config) {
-     this.config = {
+HybridConnectionsWebSocketServer.prototype.open = function (config) {
+    this.config = {
         // hybrid connection endpoint address
         server: null,
         // listen token
         token: null,
         // identifier
         id: null,
-         
+
         // If true, the server will automatically send a ping to all
         // connections every 'keepaliveInterval' milliseconds.  The timer is
         // reset on any received data from the client.
@@ -138,67 +139,67 @@ HybridConnectionsWebSocketServer.prototype.open = function(config) {
     }
 };
 
-HybridConnectionsWebSocketServer.prototype.closeAllConnections = function() {
-    this.connections.forEach(function(connection) {
+HybridConnectionsWebSocketServer.prototype.closeAllConnections = function () {
+    this.connections.forEach(function (connection) {
         connection.close();
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcast = function(data) {
+HybridConnectionsWebSocketServer.prototype.broadcast = function (data) {
     if (Buffer.isBuffer(data)) {
         this.broadcastBytes(data);
     }
-    else if (typeof(data.toString) === 'function') {
+    else if (typeof (data.toString) === 'function') {
         this.broadcastUTF(data);
     }
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcastUTF = function(utfData) {
-    this.connections.forEach(function(connection) {
+HybridConnectionsWebSocketServer.prototype.broadcastUTF = function (utfData) {
+    this.connections.forEach(function (connection) {
         connection.sendUTF(utfData);
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcastBytes = function(binaryData) {
-    this.connections.forEach(function(connection) {
+HybridConnectionsWebSocketServer.prototype.broadcastBytes = function (binaryData) {
+    this.connections.forEach(function (connection) {
         connection.sendBytes(binaryData);
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.shutDown = function() {
+HybridConnectionsWebSocketServer.prototype.shutDown = function () {
     this.closeAllConnections();
 };
 
-HybridConnectionsWebSocketServer.prototype.handleRequestAccepted = function(connection) {
+HybridConnectionsWebSocketServer.prototype.handleRequestAccepted = function (connection) {
     var self = this;
-    connection.once('close', function(closeReason, description) {
+    connection.once('close', function (closeReason, description) {
         self.handleConnectionClose(connection, closeReason, description);
     });
     this.connections.push(connection);
     this.emit('connect', connection);
 };
 
-HybridConnectionsWebSocketServer.prototype.handleRequestResolved = function(request) {
+HybridConnectionsWebSocketServer.prototype.handleRequestResolved = function (request) {
     var index = this.pendingRequests.indexOf(request);
     if (index !== -1) { this.pendingRequests.splice(index, 1); }
 };
 
-HybridConnectionsWebSocketServer.prototype.handleConnectionClose = function(closeReason, description) {
-   console.log(description);
+HybridConnectionsWebSocketServer.prototype.handleConnectionClose = function (closeReason, description) {
+    console.log(description);
 }
 
 function connectControlChannel(server) {
-  /* create the control connection */
+    /* create the control connection */
 
-  var headers = null;
-  if ( server.config.token != null) {
-    headers = { 'ServiceBusAuthorization' : server.config.token};
-  };
+    var headers = null;
+    if (server.config.token != null) {
+        headers = { 'ServiceBusAuthorization': server.config.token };
+    };
 
 
-  var client = new WebSocketClient();
-  client.connect(server.listenUri, null, null, headers);
-  client.on('connect', function(connection) {
+    var client = new WebSocketClient();
+    client.connect(server.listenUri, null, null, headers);
+    client.on('connect', function (connection) {
         server.controlChannel = connection;
         server.controlChannel.on('error', function (event) {
             server.emit('error', event);
@@ -207,13 +208,12 @@ function connectControlChannel(server) {
             }
         });
 
-        server.controlChannel.on('close', function(event) {
+        server.controlChannel.on('close', function (event) {
             // reconnect
-            if (!closeRequested)
-            {
+            if (!closeRequested) {
                 connectControlChannel(server);
-            }  else {
-                server.emit('close', server); 
+            } else {
+                server.emit('close', server);
             }
 
         });
@@ -222,47 +222,55 @@ function connectControlChannel(server) {
                 try {
                     handleControl(server, JSON.parse(message.utf8Data));
                 }
-                catch(e) {
+                catch (e) {
                     // do nothing if there's an error.
                 }
             }
         });
     });
-   client.on('connectFailed', function(event){});
+    client.on('connectFailed', function (event) { 
+        console.log(event);
+    });
 }
 
-function handleControl(server,message) {
-   if ( isDefinedAndNonNull(message, 'accept') ) {
-        var address = message.accept.address;
-  
-        var wsRequest = new WebSocketRequest(server.listenUri, message.accept.address, message.accept.id, message.accept.connectHeaders, server.config);
-        try {
-            wsRequest.readHandshake();
-        }
-        catch(e) {
-            wsRequest.reject(
-                e.httpCode ? e.httpCode : 400,
-                e.message,
-                e.headers
-            );
-            debug('Invalid handshake: %s', e.message);
-            return;
-        }
-        
-        server.pendingRequests.push(wsRequest);
+function handleControl(server, message) {
+    if (isDefinedAndNonNull(message, 'accept')) {
+        handleAccept(server, message);
+    }
+}
 
-        wsRequest.once('requestAccepted', server._handlers.requestAccepted);
-        wsRequest.once('requestResolved', server._handlers.requestResolved);
+function handleAccept(server, message) {
+    var wsRequest = new WebSocketRequest(
+        message.accept.address,
+        message.accept.id,
+        message.accept.connectHeaders,
+        server.config);
+    try {
+        wsRequest.readHandshake();
+    }
+    catch (e) {
+        wsRequest.reject(
+            e.httpCode ? e.httpCode : 400,
+            e.message,
+            e.headers
+        );
+        debug('Invalid handshake: %s', e.message);
+        return;
+    }
 
-        if (!server.config.autoAcceptConnections && utils.eventEmitterListenerCount(server, 'request') > 0) {
-            server.emit('request', wsRequest);
-        }
-        else if (server.config.autoAcceptConnections) {
-            wsRequest.accept(wsRequest.requestedProtocols[0], wsRequest.origin);
-        }
-        else {
-            wsRequest.reject(404, 'No handler is configured to accept the connection.');
-        }
+    server.pendingRequests.push(wsRequest);
+
+    wsRequest.once('requestAccepted', server._handlers.requestAccepted);
+    wsRequest.once('requestResolved', server._handlers.requestResolved);
+
+    if (!server.config.autoAcceptConnections && utils.eventEmitterListenerCount(server, 'request') > 0) {
+        server.emit('request', wsRequest);
+    }
+    else if (server.config.autoAcceptConnections) {
+        wsRequest.accept(wsRequest.requestedProtocols[0], wsRequest.origin);
+    }
+    else {
+        wsRequest.reject(404, 'No handler is configured to accept the connection.');
     }
 }
 

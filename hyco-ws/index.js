@@ -69,20 +69,28 @@ WS.createRelayToken = function createRelayToken(uri, key_name, key) {
     return token;
 };
 
-WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, token)
+WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, token, id)
 {
-    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection?action=connect&path=' + path;
+    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection/'+ path;
+    uri = uri + ( uri.indexOf('?') == -1 ?'?':'&') + 'sb-hc-action=connect';
     if ( token != null ) {
-         uri = uri + '&token=' +  encodeURIComponent(token);
+         uri = uri + '&sb-hc-token=' +  encodeURIComponent(token);
+    }
+    if ( id != null ) {
+         uri = uri + '&sb-hc-id=' +  encodeURIComponent(id);
     }
     return uri;
 }
 
-WS.createRelayListenUri = function createRelayListenUri(serviceBusNamespace, path, token)
+WS.createRelayListenUri = function createRelayListenUri(serviceBusNamespace, path, token, id)
 {
-    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection?action=listen&path=' + path;
+    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection/'+ path;
+    uri = uri + ( uri.indexOf('?') == -1 ?'?':'&') + 'sb-hc-action=listen';
     if ( token != null ) {
-         uri = uri + '&token=' +  encodeURIComponent(token);
+         uri = uri + '&sb-hc-token=' +  encodeURIComponent(token);
+    }
+    if ( id != null ) {
+         uri = uri + '&sb-hc-id=' +  encodeURIComponent(id);
     }
     return uri;
 }

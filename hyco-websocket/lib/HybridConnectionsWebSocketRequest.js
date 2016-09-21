@@ -42,24 +42,22 @@ var cookieNameValidateRegEx = /([\x00-\x20\x22\x28\x29\x2c\x2f\x3a-\x3f\x40\x5b-
 var cookieValueValidateRegEx = /[^\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]/;
 var cookieValueDQuoteValidateRegEx = /^"[^"]*"$/;
 var controlCharsAndSemicolonRegEx = /[\x00-\x20\x3b]/g;
-
 var cookieSeparatorRegEx = /[;,] */;
 
 
 
-function HybridConnectionsWebSocketRequest(resource, address, id, httpHeaders, serverConfig) {
+function HybridConnectionsWebSocketRequest(address, id, httpHeaders, serverConfig) {
     // Superclass Constructor
     EventEmitter.call(this);
 
-    this.resource = resource;
+    this.resource = address;
     this.address = address;
     this.id = id;
     this.httpRequest = {
         headers : {} 
     };
 
-    for(var keys = Object.keys(httpHeaders), l = keys.length; l; --l)
-    {
+    for(var keys = Object.keys(httpHeaders), l = keys.length; l; --l) {
         this.httpRequest.headers[ keys[l-1].toLowerCase() ] = httpHeaders[ keys[l-1] ];
     }
 
@@ -190,11 +188,59 @@ HybridConnectionsWebSocketRequest.prototype.parseCookies = function(str) {
 
 HybridConnectionsWebSocketRequest.prototype.accept = function(acceptedProtocol, allowedOrigin, cookies, callback) {
      var req = this;
-     var client = new WebSocketClient({tlsOptions: { rejectUnauthorized: false }});
-     client.connect(this.address, null, null);
+     var protocolFullCase = null;
+     var extraHeaders = {};
+
+    if (acceptedProtocol) {
+        protocolFullCase = this.protocolFullCaseMap[acceptedProtocol.toLocaleLowerCase()];
+        if (typeof(protocolFullCase) === 'undefined') {
+            protocolFullCase = acceptedProtocol;
+        }
+    }
+    else {
+        protocolFullCase = acceptedProtocol;
+    }
+    this.protocolFullCaseMap = null;
+
+    if (protocolFullCase) {
+        // validate protocol
+        for (var i=0; i < protocolFullCase.length; i++) {
+            var charCode = protocolFullCase.charCodeAt(i);
+            var character = protocolFullCase.charAt(i);
+            if (charCode < 0x21 || charCode > 0x7E || separators.indexOf(character) !== -1) {
+                this.reject(500);
+                throw new Error('Illegal character "' + String.fromCharCode(character) + '" in subprotocol.');
+            }
+        }
+        if (this.requestedProtocols.indexOf(acceptedProtocol) === -1) {
+            this.reject(500);
+            throw new Error('Specified protocol was not requested by the client.');
+        }
+
+        protocolFullCase = protocolFullCase.replace(headerSanitizeRegExp, '');
+    }
+    this.requestedProtocols = null;
+
+    // Mark the request resolved now so that the user can't call accept or
+    // reject a second time.
+    this._resolved = true;
+    this.emit('requestResolved', this);
+    
+
+     var client = new WebSocketClient(
+         {tlsOptions: { rejectUnauthorized: false }});
+     client.connect(this.address, protocolFullCase);
      client.on('connect', function(connection) {
         req.emit('requestAccepted', connection);
-        callback(connection);
+        if ( callback ) { 
+            callback(connection);
+        }
+     });
+     client.on('error', function(event){
+         req.emit('requestRejected', event);
+        if ( callback ) {
+            callback(event);
+        }
      });
 };
 
@@ -203,9 +249,10 @@ HybridConnectionsWebSocketRequest.prototype.reject = function(status, reason, ex
      var client = new WebSocketClient({tlsOptions: { rejectUnauthorized: false }});
      var rejectUri = this.address + "&statusCode=" + status + "&statusDescription" + encodeURIComponent(reason);
      
-     client.connect(rejectUri, null, null);
+     client.connect(rejectUri, null, null, extraHeaders);
+     // we expect this to complete with a 410 Gone
      client.on('error', function(event){
-         this.emit('requestRejected', this);
+         this.emit('requestRejected', event);
          callback(event);
      });    
 };

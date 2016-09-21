@@ -165,10 +165,6 @@ function accept(server, message) {
   var self = server;
   var completeHybiUpgrade2 = function (protocol) {
 
-    if (typeof protocol != 'undefined') {
-      headers.push('Sec-WebSocket-Protocol: ' + protocol);
-    }
-
     var extensions = {};
     try {
       extensions = acceptExtensions.call(self, extensionsOffer);
@@ -188,25 +184,32 @@ function accept(server, message) {
     // allows external modification/inspection of handshake headers
     self.emit('headers', headers);
 
-    var client = new WebSocket(address, null, { rejectUnauthorized: false, headers: headers });
-    server.clients.push(client);
+    try {
+      var client = new WebSocket(address, protocol, {
+        rejectUnauthorized: false, 
+        headers: headers,
+        perMessageDeflate : false
+      });
 
-    client.on('close', function () {
-      var index = server.clients.indexOf(client);
-      if (index != -1) {
-        server.clients.splice(index, 1);
-      }
-    });
-
-    server.emit('connection', client);
-    if (self.options.clientTracking) {
-      self.clients.push(client);
-      client.on('close', function () {
-        var index = self.clients.indexOf(client);
+      client.on('error', function (event) {
+        var index = server.clients.indexOf(client);
         if (index != -1) {
-          self.clients.splice(index, 1);
+          server.clients.splice(index, 1);
         }
       });
+
+      server.emit('connection', client);
+      if (self.options.clientTracking) {
+        self.clients.push(client);
+        client.on('close', function () {
+          var index = self.clients.indexOf(client);
+          if (index != -1) {
+            self.clients.splice(index, 1);
+          }
+        });
+      }
+    } catch (err) {
+       console.log(err);
     }
   }
 

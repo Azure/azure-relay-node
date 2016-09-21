@@ -46,17 +46,21 @@ var path = argv._[1];
 var keyrule = argv._[2];
 var key = argv._[3];
 
-
-
-var wsServer = new WebSocketServer(
-  {
+var wsServer = new WebSocketServer({
     server: WebSocket.createRelayListenUri(ns, path),
     token: WebSocket.createRelayToken('http://' + ns, keyrule, key),
-
   });
 
 wsServer.on('request', function (request) {
-  createTunnel(request, 3389);
+  var url = urlParse(request.resource, true);
+  var args = url.pathname.split('/').slice(1);
+  var action = args.shift();
+  var params = url.query;
+  if (action == 'tunnel') {
+    createTunnel(request, params.port, params.host);
+  } else {
+    request.reject(404);
+  }
 });
 
 
