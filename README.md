@@ -125,7 +125,7 @@ replaced with the correct values for namespace, path, and token using a template
       }
 
       var host = window.document.location.host.replace(/:.*/, '');
-      var ws = new WebSocket('wss://{{ns}}:443/$servicebus/hybridconnection/{{path}}?'+
+      var ws = new WebSocket('wss://{{ns}}:443/$hc/{{path}}?'+
                                 'sb-hc-action=connect&sb-hc-token={{token}}');
       ws.onmessage = function (event) {
         updateStats(JSON.parse(event.data));

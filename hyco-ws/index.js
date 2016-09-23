@@ -71,7 +71,7 @@ WS.createRelayToken = function createRelayToken(uri, key_name, key) {
 
 WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, token, id)
 {
-    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection/'+ path;
+    var uri = 'wss://' + serviceBusNamespace + ':443/$hc/'+ path;
     uri = uri + ( uri.indexOf('?') == -1 ?'?':'&') + 'sb-hc-action=connect';
     if ( token != null ) {
          uri = uri + '&sb-hc-token=' +  encodeURIComponent(token);
@@ -84,7 +84,7 @@ WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, t
 
 WS.createRelayListenUri = function createRelayListenUri(serviceBusNamespace, path, token, id)
 {
-    var uri = 'wss://' + serviceBusNamespace + ':443/$servicebus/hybridconnection/'+ path;
+    var uri = 'wss://' + serviceBusNamespace + ':443/$hc/'+ path;
     uri = uri + ( uri.indexOf('?') == -1 ?'?':'&') + 'sb-hc-action=listen';
     if ( token != null ) {
          uri = uri + '&sb-hc-token=' +  encodeURIComponent(token);
