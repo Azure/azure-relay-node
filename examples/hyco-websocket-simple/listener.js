@@ -8,8 +8,8 @@ if ( process.argv.length < 6) {
     var keyrule = process.argv[4];
     var key = process.argv[5]; 
     
-    var WebSocket = require('../../');
-    var WebSocketServer = require('../../').server;
+    var WebSocket = require('hyco-websocket');
+    var WebSocketServer = require('hyco-websocket').server;
 
     var wss = new WebSocketServer(
         {

@@ -1,2 +1,1 @@
-simon:bf787577ff656cde5b5d1f8236a75d2a
-foo:37b51d194a7513e45b56f6524f2d51f2
+foo:bar

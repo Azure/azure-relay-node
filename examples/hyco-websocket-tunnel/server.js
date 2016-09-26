@@ -1,6 +1,5 @@
 var fs = require('fs');
 var net = require('net');
-var crypto = require('crypto');
 var urlParse = require('url').parse;
 var WebSocket = require('../hyco-websocket');
 var WebSocketServer = require('../hyco-websocket').server;
@@ -72,8 +71,8 @@ function authenticate(request) {
   } catch (e) {
     credentials = [];
   }
-  var user = credentials[0], hash = md5(credentials[1]);
-  return (users[user] == hash);
+  var user = credentials[0], pwd =credentials[1];
+  return (users[user] == pwd);
 }
 
 function createTunnel(request, port, host) {
@@ -127,12 +126,6 @@ function loadUsers() {
     }
   });
   return users;
-}
-
-function md5(s) {
-  var hash = crypto.createHash('md5');
-  hash.update(new Buffer(String(s)));
-  return hash.digest('hex');
 }
 
 function parseAddr(str, addr) {

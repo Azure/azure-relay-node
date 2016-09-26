@@ -7,7 +7,7 @@ if (process.argv.length < 6) {
     var keyrule = process.argv[4];
     var key = process.argv[5]; 
 
-    var WebSocket = require('../../')
+    var WebSocket = require('hyco-websocket')
     var WebSocketClient = WebSocket.client
      
 
