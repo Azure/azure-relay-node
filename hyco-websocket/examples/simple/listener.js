@@ -1,21 +1,31 @@
+var args = { /* defaults */
+    ns : process.env.SB_HC_NAMESPACE,
+    path : process.env.SB_HC_PATH,
+    keyrule : process.env.SB_HC_KEYRULE,
+    key : process.env.SB_HC_KEY
+};
 
-if ( process.argv.length < 6) {
-    console.log("listener.js [namespace] [path] [key-rule] [key]");
+/* Parse command line options */
+var pattern = /^--(.*?)(?:=(.*))?$/;
+process.argv.forEach(function(value) {
+    var match = pattern.exec(value);
+    if (match) {
+        args[match[1]] = match[2] ? match[2] : true;
+    }
+});
+
+if ( args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
+    console.log("listener.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]");
 } else {
 
-    var ns = process.argv[2];
-    var path = process.argv[3];
-    var keyrule = process.argv[4];
-    var key = process.argv[5]; 
-    
     var WebSocket = require('../../');
     var WebSocketServer = require('../../').relayedServer;
 
-    var uri = WebSocket.createRelayListenUri(ns, path);
+    var uri = WebSocket.createRelayListenUri(args.ns, args.path);
     var wss = new WebSocketServer(
         {
             server : uri,
-            token: WebSocket.createRelayToken(uri, keyrule, key),
+            token: WebSocket.createRelayToken(uri, args.keyrule, args.key),
             autoAcceptConnections : true
         });
     wss.on('connect',      
