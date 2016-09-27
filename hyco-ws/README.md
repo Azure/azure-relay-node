@@ -18,12 +18,12 @@ The API is [generally documented in the main 'ws' package](https://github.com/we
 and this document describes how this package differs from that baseline. 
 
 The key differences between the base package and this 'hyco-ws' is that it adds 
-a new server class, that is exported via ```require('hyco-ws').relayedServer```,
+a new server class, that is exported via ```require('hyco-ws').RelayedServer```,
 and a few helper methods.
 
 ### Package Helper methods
 
-There are three new utility methods available on the package export that can be 
+There are several utility methods available on the package export that can be 
 referenced like this:
 
 ``` JavaScript
@@ -99,36 +99,31 @@ var uri = appendRelayToken([uri], [ruleName], [key], [expiry] )
 This method is functionally equivalent to the **createRelayToken** method above, but
 returns the token correctly appended to the input URI.
 
-### HybridConnectionsWebSocketServer
+### Class ws.RelayedServer
 
-The ```HybridConnectionsWebSocketServer``` class is an alternative to the ```WebSocketServer```
+The ```hycows.RelayedServer``` class is an alternative to the ```ws.Server```
 class that does not listen on the local network, but delegates listening to the Azure Relay.
 
 The two classes are largely contract compatible, meaning that an existing application using 
-the ```WebSocketServer``` class can be changed to use the relayed version quite easily. The 
-main differences are the constructor and an unfortunately required behavioral change for when 
-explicit control of accepting incoming WebSockets is required.
-
-The ```HybridConnectionsWebSocketServer``` does not support the ```mount()``` and  
-```unmount()``` methods. The server starts automatically after construction.  
+the ```ws.Server``` class can be changed to use the relayed version quite easily. The 
+main differences in the constructor and the available options.
 
 #### Constructor  
 
 ``` JavaScript 
 
-var WebSocket = require('hyco-ws');
-var HybridConnectionsWebSocketServer = WebSocket.relayedServer;
+var ws = require('hyco-ws');
+var server = ws.RelayedServer;
 
-var wss = new HybridConnectionsWebSocketServer(
+var wss = new server(
         {
             server : WebSocket.createRelayListenUri(ns, path),
-            token: WebSocket.createRelayToken(server, keyrule, key),
-            autoAcceptConnections : true
+            token: WebSocket.createRelayToken('http://'+ns, keyrule, key)
         });
 ```
 
-The ```HybridConnectionsWebSocketServer``` constructor supports a different set of arguments than the 
-```WebSocketServer``` since it is neither a standalone listener nor embeddable into an existing HTTP
+The ```RelayedServer``` constructor supports a different set of arguments than the 
+```Server``` since it is neither a standalone listener nor embeddable into an existing HTTP
 listener framework. There are also fewer options available since the WebSocket management is 
 largely delegated to the Relay service.
 
@@ -139,81 +134,81 @@ Constructor arguments:
 - **token** (required) - the argument *either* holds a previously issued token string *or* a callback
                          function that can be called to obtain such a token string. The callback optional
                          is preferred as it allows token renewal.
-- **autoAcceptConnections** (optional, defaults to *false*) - determines whether connections should be 
-                         automatically accepted, independent of the sub-protocol and extensions. 
+
+
 
 #### Events
 
-Just as with the stock WebSocketServer, HybridConnectionsWebSocketServer instances emit three Events
-that allow you to handle incoming requests, establish connections, and detect when a connection 
-has been closed.
+```RelayedServer``` instances emit three Events that allow you to handle incoming requests, establish 
+connections, and detect error conditions. You must subscribe to the 'connect' event to handle 
+messages. 
 
-##### request
+##### headers
 
-```function(webSocketRequest)```
+```function(headers)```
 
-If autoAcceptConnections is set to false, a request event will be emitted by the server whenever 
-a new WebSocket request is made. You should inspect the requested protocols and the user's origin 
-to verify the connection, and then accept or reject it by calling 
-```webSocketRequest.accept('chosen-protocol', 'accepted-origin', cb)``` or 
-```webSocketRequest.reject(cb)```. 
+The 'headers' event is raised just before an incoming connection is accepted, allowing
+for modification of the headers to send to the client. 
 
-> ** ATTENTION! CHANGE IN BEHAVIOR. ** 
-> The accept() and reject() methods of [WebSocketRequest](https://github.com/theturtle32/WebSocket-Node/blob/master/docs/WebSocketRequest.md) 
-> in the base library are synchronous. The method accept() immediately returns the ```WebSocketConnection```.
-> With the Relay, accepting the connection requires a network activity, which means the operation must
-> be carried out asynchronously. See details below in ```HybridConnectionsWebSocketRequest```.
+##### connection
 
-##### connect
+```function(socket)```
 
-```function(webSocketConnection)```
+Emitted whenever a new WebSocket connection is accepted. The object is of type ws.WebSocket 
+just as with the base package.
 
-Emitted whenever a new WebSocket connection is accepted.
 
-##### close
+##### error
 
-```function(webSocketConnection, closeReason, description)```
+```function(error)```
 
-Whenever a connection is closed for any reason, the WebSocketServer instance will emit a close event,
-passing a reference to the WebSocketConnection instance that was closed. closeReason is the numeric 
-reason status code for the connection closure, and description is a textual description of the close 
-reason, if available.  
+If the underlying server emits an error, it will be forwarded here.  
 
-### HybridConnectionsWebSocketRequest
+#### Helpers
 
-The request object is a variation of the [WebSocketRequest](https://github.com/theturtle32/WebSocket-Node/blob/master/docs/WebSocketRequest.md)
-object that is made available through the request event callback on the server object when 
-```autoAcceptConnections``` is set to false.
+To simplify starting a relayed server and immediately subscribing to incoming connections,
+the package exposes a simple helper function, which is also used in the samples:
 
-The object is functionally equivalent and provides the same information properties as the 
-base object. The signatures of the ```accept``` and ```reject``` methods differ:
+##### createRelayedListener
 
-#### Methods
+``` JavaScript
+    var WebSocket = require('hyco-ws');
 
-The following two methods differ from the stock request object in being asynchronous: 
+    var wss = WebSocket.createRelayedServer(
+        {
+            server : WebSocket.createRelayListenUri(ns, path),
+            token: WebSocket.createRelayToken('http://'+ns, keyrule, key)
+        }, 
+        function (ws) {
+            console.log('connection accepted');
+            ws.onmessage = function (event) {
+                console.log(JSON.parse(event.data));
+            };
+            ws.on('close', function () {
+                console.log('connection closed');
+            });       
+    });
+``` 
 
-##### accept
-accept(acceptedProtocol, allowedOrigin, cookies, callback)
+var server = createRelayedServer([options], [connectCallback] )
 
-Returns: nothing
+This method is simple syntactic sugar that calls the constructor to create a new 
+instance of the RelayedServer and then subscribes the provided callback 
+to the 'connection' event.
+ 
+##### relayedConnect
 
-After inspecting the WebSocketRequest's properties, call this function on the request object to 
-accept the connection. If you don't have a particular subprotocol you wish to speak, you may 
-pass null for the acceptedProtocol parameter. Note that the acceptedProtocol parameter is 
-case-insensitive, and you must either pass a value that was originally requested by the client or 
-null. For browser clients (in which the origin property would be non-null) you must pass that 
-user's origin as the allowedOrigin parameter to confirm that you wish to accept connections 
-from the given origin. 
+Simply mirroring the ```createRelayedServer``` helper in function, ```relayedConnect```
+creates a client connection and subscribes to the 'open' event on the 
+resulting socket.
 
-The callback is invoked with the established WebSocketConnection instance that can be used 
-to communicate with the connected client.
+``` JavaScript
 
-##### reject
-
-reject([httpStatus], [reason], cb)
-
-If you decide to reject the connection, you must call reject. You may optionally pass in an 
-HTTP Status code (such as 404) and a textual description that will be sent to the client. 
-The connection will then be closed.
-
-The callback is invoked, without arguments, when the rejection is complete.
+    WebSocket.relayedConnect(
+        WebSocket.createRelaySendUri(ns, path),
+        WebSocket.createRelayToken('http://'+ns, keyrule, key),
+        function (socket) {
+            ...
+        }
+    );
+```  

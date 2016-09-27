@@ -41,8 +41,20 @@ function HybridConnectionsWebSocketServer(options, callback) {
     backlog: null // use default (511 as implemented in net.js)
   }, options);
 
+
   if (!isDefinedAndNonNull(options, 'server')) {
-    throw new TypeError('\'server\' must be provided');
+    if (process.env.SB_HC_NAMESPACE != null &&
+      process.env.SB_HC_PATH != null) {
+      options.server = WebSocket.createRelayListenUri(process.env.SB_HC_NAMESPACE, process.env.SB_HC_PATH);
+    } else {
+      throw new TypeError('\'server\' must be provided');
+    }
+    if (!isDefinedAndNonNull(options, 'token')) {
+      if (process.env.SB_HC_KEYRULE != null &&
+        process.env.SB_HC_KEY != null) {
+        options.token = WebSocket.createRelayToken(options.server, process.env.SB_HC_KEYRULE, process.env.SB_HC_KEY);
+      }
+    }
   }
 
   var self = this;
@@ -186,9 +198,9 @@ function accept(server, message) {
 
     try {
       var client = new WebSocket(address, protocol, {
-        rejectUnauthorized: false, 
+        rejectUnauthorized: false,
         headers: headers,
-        perMessageDeflate : false
+        perMessageDeflate: false
       });
 
       client.on('error', function (event) {
@@ -209,7 +221,7 @@ function accept(server, message) {
         });
       }
     } catch (err) {
-       console.log(err);
+      console.log(err);
     }
   }
 
@@ -267,4 +279,4 @@ function abortConnection(message, status, reason) {
 }
 
 
-module.exports = HybridConnectionsWebSocketServer
+module.exports = HybridConnectionsWebSocketServer;

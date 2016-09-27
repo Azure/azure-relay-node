@@ -24,7 +24,6 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "wait.for" : "latest",
     "websocket": "latest",
     "crypto": "latest",
     "moment": "latest"

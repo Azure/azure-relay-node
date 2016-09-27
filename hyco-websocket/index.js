@@ -10,7 +10,8 @@ WS.createRelayToken = function createRelayToken(uri, key_name, key, expiry) {
     // Token expires in one hour
     var parsedUrl = url.parse(uri);
     parsedUrl.protocol = "http";
-    parsedUrl.query = parsedUrl.hash = parsedUrl.port = null;
+    parsedUrl.search = parsedUrl.hash = parsedUrl.port = null;
+    parsedUrl.pathname = parsedUrl.pathname.replace('$hc/','');
     uri = url.format(parsedUrl);
 
     if ( expiry == null) {
@@ -25,10 +26,10 @@ WS.createRelayToken = function createRelayToken(uri, key_name, key, expiry) {
 };
 
 WS.appendRelayToken = function appendRelayToken(uri, key_name, key, expiry) {
-   var token = createRelayToken(uri, key_name, key, expiry);
+   var token = WS.createRelayToken(uri, key_name, key, expiry);
 
     var parsedUrl = url.parse(uri);
-    parsedUrl.query = parsedUrl.query + '&sb-hc-token=' + encodeURIComponent(token);
+    parsedUrl.search = parsedUrl.search + '&sb-hc-token=' + encodeURIComponent(token);
     return url.format(parsedUrl);
 }
 
@@ -38,7 +39,7 @@ WS.createRelayBaseUri = function createRelayBaseUri(serviceBusNamespace, path) {
 }
 
 WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, token, id) {
-    var uri = createRelayBaseUri(serviceBusNamespace, path);
+    var uri = WS.createRelayBaseUri(serviceBusNamespace, path);
     uri = uri + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-action=connect';
     if (token != null) {
         uri = uri + '&sb-hc-token=' + encodeURIComponent(token);
@@ -50,7 +51,7 @@ WS.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, t
 }
 
 WS.createRelayListenUri = function createRelayListenUri(serviceBusNamespace, path, token, id) {
-    var uri = createRelayBaseUri(serviceBusNamespace, path);
+    var uri = WS.createRelayBaseUri(serviceBusNamespace, path);
     uri = uri + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-action=listen';
     if (token != null) {
         uri = uri + '&sb-hc-token=' + encodeURIComponent(token);

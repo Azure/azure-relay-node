@@ -11,10 +11,11 @@ if ( process.argv.length < 6) {
     var WebSocket = require('../../');
     var WebSocketServer = require('../../').relayedServer;
 
+    var uri = WebSocket.createRelayListenUri(ns, path);
     var wss = new WebSocketServer(
         {
-            server : WebSocket.createRelayListenUri(ns, path),
-            token: WebSocket.createRelayToken(server, keyrule, key),
+            server : uri,
+            token: WebSocket.createRelayToken(uri, keyrule, key),
             autoAcceptConnections : true
         });
     wss.on('connect',      
