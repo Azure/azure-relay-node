@@ -105,7 +105,7 @@ preferred; mostly since URLs end up in many logs.
 
   var client = new WebSocket(address, null, opt);
   client.on('open', function(wss) {
-       wss.send("Hi!); 
+       wss.send("Hi!"); 
   });  
 
 ```
