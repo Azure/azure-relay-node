@@ -1,6 +1,11 @@
 {
+  "author": "Microsoft Corporation",
   "name": "hyco-websocket",
   "description": "",
+  "version": "1.0.3",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "homepage": "https://azure.com",
   "keywords": [
     "websocket",
     "websockets",
@@ -13,13 +18,10 @@
     "server",
     "client"
   ],
-  "author": "",
-  "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/clemensv/azure-relay-hybridconnections.git"
+    "url": "https://github.com/Azure/azure-relay-node.git"
   },
-  "homepage": "https://azure.com",
   "engines": {
     "node": ">=0.8.0"
   },
@@ -28,17 +30,10 @@
     "crypto": "latest",
     "moment": "latest"
   },
-  "devDependencies": {
-  },
   "config": {
     "verbose": false
   },
-  "scripts": {
-    
-  },
-  "main": "index",
   "directories": {
     "lib": "./lib"
-  },
-  "license": "Apache-2.0"
+  }
 }

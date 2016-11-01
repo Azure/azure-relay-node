@@ -1,10 +1,11 @@
 {
   "author": "Microsoft Corporation",
   "name": "hyco-ws",
-  "description": "xyz",
-  "version": "1.0.2",
+  "description": "",
+  "version": "1.0.3",
   "license": "MIT",
   "main": "index.js",
+  "homepage": "https://azure.com",
   "keywords": [
     "Hixie",
     "HyBi",
@@ -14,16 +15,14 @@
     "WebSockets",
     "real-time"
   ],
-  "repository" :
-  { 
+  "repository" : { 
     "type" : "git",
-    "url" : "https://github.com/clemensv/azure-relay-hybridconnections.git"
+    "url" : "https://github.com/Azure/azure-relay-node.git"
   },
   "dependencies": {
     "ws": "1.1.x",
     "crypto": "latest",
     "moment": "latest"
   },
-  "gypfile": true,
-  "private" : false
+  "gypfile": true
 }
