@@ -1,4 +1,13 @@
-# Azure Relay Hybrid Connections for Node.JS
+<p align="center">
+  <img src="relay.png" alt="Microsoft Azure Relay" width="100"/>
+</p>
+
+# Azure Relay Hybrid Connections Clients for Node.JS
+
+|Package|Status|
+|------|-------------|
+|hyco-ws|[![npm version](https://badge.fury.io/js/hyco-ws.svg)](https://badge.fury.io/js/hyco-ws)|
+|hyco-websocket|[![npm version](https://badge.fury.io/js/hyco-websocket.svg)](https://badge.fury.io/js/hyco-websocket)|
 
 This repository contains Node packages and samples for the Hybrid Connections feature of the 
 Microsoft Azure Relay, a capability pilar of the Azure Service Bus platform.
