@@ -45,7 +45,7 @@ listener connection is automatically TLS/SSL protected without you having to jug
 
 ### Servers
 
-The snippet below shows the "ws"/"hyco-ws" variant of creating a server. The API is usage is 
+The snippet below shows the "ws"/"hyco-ws" variant of creating a server. The API usage is 
 completely "normal" except for using the "hyco-ws" package and creating an instance of the
 *RelayedServer* instead of *Server*. The default underlying *Server* class remains fully available 
 when using "hyco-ws" instead of "ws", meaning you can host a relayed and a local WebSocket 
@@ -79,7 +79,7 @@ experience is analogous and explained in the package's README.
 
 Up to 25 WebSocket listeners can listen concurrently on the same Hybrid Connection path on the 
 Relay; if two or more listeners are connected, the service will automatically balance incoming 
-connection requests across the connected listeners. which also provides an easy failover capability. 
+connection requests across the connected listeners which also provides an easy failover capability. 
 You don't have to do anything to enable this, just have multiple listeners share the same path.   
 
 Clients connect to the server through the Relay service on the same path the listener is listening 
@@ -92,7 +92,7 @@ with a control message over the open control channel. The control message contai
 a "rendezvous endpoint" that is valid for a brief period. The server framework will decide whether
 to accept the incoming connection, potentially including calling some extensibility hooks, and
 then open an outbound WebSocket to the rendezvous endpoint. The client WebSocket and this "data"
-WenSocket are then bound into a single end-to-end connection by the Relay service, behaving like
+WebSocket are then bound into a single end-to-end connection by the Relay service, behaving like
 a single WebSocket.    
 
 ### Clients
@@ -108,8 +108,8 @@ preferred; mostly since URLs end up in many logs.
   var address = WebSocket.createRelaySendUri(ns, path),
 
   var client = new WebSocket(address, null, opt);
-  client.on('open', function(wss) {
-       wss.send("Hi!"); 
+  client.on('open', function() {
+       client.send("Hi!"); 
   });  
 
 ```
@@ -142,7 +142,7 @@ replaced with the correct values for namespace, path, and token using a template
 The README documents for the two includes packages discuss the particular additions made 
 to accomodate support for Hybrid Connections. What's common for both libraries is that 
 you can use the 'hyco-ws' and the 'hyco-websocket' packages instead of the 'ws' and 'websocket'
-without losing any existing functionality. Both packages containe to expose the full and unaltered
+without losing any existing functionality. Both packages contain and expose the full and unaltered
 functionality of their respective base packages.
 
 * [README for hyco-ws](./hyco-ws/README.md)
