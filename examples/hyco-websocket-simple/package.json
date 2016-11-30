@@ -6,6 +6,11 @@
     "type": "git",
     "url": "git://github.com/clemensv/azure-hybridconnections.git"
   },
-  "devDependencies": {},
+  "dependencies": {
+    "hyco-websocket": "latest"
+  },
+  "devDependencies": {
+    "wait.for" : "latest"
+  },
   "optionalDependencies": {}
 }

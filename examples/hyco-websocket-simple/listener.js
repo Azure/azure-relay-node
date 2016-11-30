@@ -9,7 +9,7 @@ if ( process.argv.length < 6) {
     var key = process.argv[5]; 
     
     var WebSocket = require('hyco-websocket');
-    var WebSocketServer = require('hyco-websocket').server;
+    var WebSocketServer = require('hyco-websocket').relayedServer;
 
     var wss = new WebSocketServer(
         {

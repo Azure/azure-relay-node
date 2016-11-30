@@ -22,7 +22,10 @@
   "dependencies": {
     "ws": "1.1.x",
     "crypto": "latest",
-    "moment": "latest"
+    "moment": "latest",
+    "util" : "latest",
+    "http" : "latest",
+    "events" : "latest"
   },
   "gypfile": true
 }

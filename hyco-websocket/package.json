@@ -28,7 +28,11 @@
   "dependencies": {
     "websocket": "latest",
     "crypto": "latest",
-    "moment": "latest"
+    "moment": "latest",
+    "url": "latest",
+    "wait.for": "latest",
+    "events": "latest",
+    "querystring" : "latest"
   },
   "config": {
     "verbose": false
