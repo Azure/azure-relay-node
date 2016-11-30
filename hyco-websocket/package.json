@@ -2,7 +2,7 @@
   "author": "Microsoft Corporation",
   "name": "hyco-websocket",
   "description": "",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "Apache-2.0",
   "main": "index.js",
   "homepage": "https://azure.com",
