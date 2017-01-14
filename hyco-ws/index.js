@@ -4,7 +4,7 @@ var crypto = require('crypto')
 var moment = require('moment')
 var url = require('url');
 
-/*!
+/**
  * Adapted from 
  * ws: a node.js websocket client
  * Copyright(c) 2011 Einar Otto Stangvik <einaros@gmail.com>
@@ -56,33 +56,43 @@ WS.relayedConnect = WS.createRelayedConnection = function relayedConnect(address
   return client;
 };
 
-WS.createRelayToken = function createRelayToken(uri, key_name, key, expiry) {
-    // Token expires in one hour
+/**
+ * Create a Relay Token
+ *
+ * @param {String} address The URL/address we need to connect to.
+ * @param {String} key_name The SharedAccessSignature key name.
+ * @param {String} key The SharedAccessSignature key value.
+ * @param {number} expirationSeconds Optional number of seconds until the generated token should expire.  Default is 1 hour (3600) if not specified.
+ * @api public
+ */
+WS.createRelayToken = function createRelayToken(uri, key_name, key, expirationSeconds) {
     var parsedUrl = url.parse(uri);
     parsedUrl.protocol = "http";
     parsedUrl.search = parsedUrl.hash = parsedUrl.port = null;
     parsedUrl.pathname = parsedUrl.pathname.replace('$hc/','');
     uri = url.format(parsedUrl);
 
-    if ( expiry == null) {
-       expiry = moment().add(1, 'hours').unix();
+    if (!expirationSeconds) {
+      // Token expires in one hour (3600 seconds)
+      expirationSeconds = 3600;
     }
-    var string_to_sign = encodeURIComponent(uri) + '\n' + expiry;
+
+    var unixSeconds = moment().add(expirationSeconds, 'seconds').unix();
+    var string_to_sign = encodeURIComponent(uri) + '\n' + unixSeconds;
     var hmac = crypto.createHmac('sha256', key);
     hmac.update(string_to_sign);
     var signature = hmac.digest('base64');
-    var token = 'SharedAccessSignature sr=' + encodeURIComponent(uri) + '&sig=' + encodeURIComponent(signature) + '&se=' + expiry + '&skn=' + key_name;
+    var token = 'SharedAccessSignature sr=' + encodeURIComponent(uri) + '&sig=' + encodeURIComponent(signature) + '&se=' + unixSeconds + '&skn=' + key_name;
     return token;
 };
 
-WS.appendRelayToken = function appendRelayToken(uri, key_name, key, expiry) {
-   var token = WS.createRelayToken(uri, key_name, key, expiry);
+WS.appendRelayToken = function appendRelayToken(uri, key_name, key, expirationSeconds) {
+   var token = WS.createRelayToken(uri, key_name, key, expirationSeconds);
 
     var parsedUrl = url.parse(uri);
     parsedUrl.search = parsedUrl.search + '&sb-hc-token=' + encodeURIComponent(token);
     return url.format(parsedUrl);
 }
-
 
 WS.createRelayBaseUri = function createRelayBaseUri(serviceBusNamespace, path) {
     return 'wss://' + serviceBusNamespace + ':443/$hc/' + path;

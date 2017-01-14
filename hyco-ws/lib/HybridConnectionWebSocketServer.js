@@ -6,6 +6,7 @@ const http = require('http');
 const crypto = require('crypto');
 const WebSocket = require('ws');
 const url = require('url');
+const moment = require('moment');
 
 // slightly awful workaround to pull submodules 
 var wsc = require.cache[require.resolve('ws')]
@@ -31,6 +32,8 @@ function HybridConnectionsWebSocketServer(options, callback) {
   options = Object.assign({
     server: null,
     token: null,
+    keyName: null,
+    key: null,
     id: null,
     verifyClient: null,
     handleProtocols: null,
@@ -40,21 +43,14 @@ function HybridConnectionsWebSocketServer(options, callback) {
     maxPayload: 100 * 1024 * 1024,
     backlog: null // use default (511 as implemented in net.js)
   }, options);
-
-
+  
   if (!isDefinedAndNonNull(options, 'server')) {
-    if (process.env.SB_HC_NAMESPACE != null &&
-      process.env.SB_HC_PATH != null) {
-      options.server = WebSocket.createRelayListenUri(process.env.SB_HC_NAMESPACE, process.env.SB_HC_PATH);
-    } else {
-      throw new TypeError('\'server\' must be provided');
-    }
-    if (!isDefinedAndNonNull(options, 'token')) {
-      if (process.env.SB_HC_KEYRULE != null &&
-        process.env.SB_HC_KEY != null) {
-        options.token = WebSocket.createRelayToken(options.server, process.env.SB_HC_KEYRULE, process.env.SB_HC_KEY);
-      }
-    }
+    throw new TypeError('\'server\' must be provided');
+  }
+  
+  if (!isDefinedAndNonNull(options, 'token') &&
+    (!isDefinedAndNonNull(options, 'keyName') || !isDefinedAndNonNull(options, 'key'))) {
+    throw new TypeError('\'token\' or \'keyName\' and \'key\' must be provided');
   }
 
   var self = this;
@@ -108,18 +104,31 @@ HybridConnectionsWebSocketServer.prototype.close = function (callback) {
     throw error;
 }
 
-
 function connectControlChannel(server) {
   /* create the control connection */
 
   var opt = null;
-  if (server.options.token != null) {
-    opt = { headers: { 'ServiceBusAuthorization': server.options.token } };
-  };
+  var token = null;
+  var tokenRenewDuration = null;
+  if (server.options.token) {
+    token = server.options.token;
+  } else if (server.options.keyName && server.options.key) {
+    tokenRenewDuration = new moment.duration(1, 'hours');
+    token = WebSocket.createRelayToken(server.options.server, server.options.keyName, server.options.key, tokenRenewDuration.asSeconds());
+  }
+  
+  if (token) {
+    opt = { headers: { 'ServiceBusAuthorization': token } };
+  }
+
   server.controlChannel = new WebSocket(server.listenUri, null, opt);
 
+  // This represents the token renew timer/interval, keep a reference in order to cancel it.
+  var tokenRenewTimer = null;
+  
   server.controlChannel.onerror = function (event) {
     server.emit('error', event);
+    clearInterval(tokenRenewTimer);
     if (!server.closeRequested) {
       connectControlChannel(server);
     }
@@ -130,20 +139,40 @@ function connectControlChannel(server) {
   }
 
   server.controlChannel.onclose = function (event) {
-    // reconnect
+    clearInterval(tokenRenewTimer);
+
     if (!server.closeRequested) {
+      // reconnect
       connectControlChannel(server);
     } else {
       server.emit('close', server);
     }
-
   }
+  
   server.controlChannel.onmessage = function (event) {
     var message = JSON.parse(event.data);
     if (isDefinedAndNonNull(message, 'accept')) {
       accept(server, message);
     }
   };
+  
+  if (tokenRenewDuration) {
+    tokenRenewTimer = setInterval(function () {
+      if (!server.closeRequested) {
+        var newToken = WebSocket.createRelayToken(server.options.server, server.options.keyName, server.options.key, tokenRenewDuration.asSeconds());
+        var renewToken = { 'renewToken' : { 'token' : newToken } };
+        server.controlChannel.send(
+          JSON.stringify(renewToken),
+          function (error) {
+            if (error) {
+              console.log('renewToken error: ' + error);
+            }
+          }
+        );
+      }
+    },
+    tokenRenewDuration.asMilliseconds());
+  }
 }
 
 function accept(server, message) {
