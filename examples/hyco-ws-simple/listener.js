@@ -19,7 +19,7 @@ if ( process.argv.length < 6) {
         function (ws) {
             console.log('connection accepted');
             ws.onmessage = function (event) {
-                console.log(JSON.parse(event.data));
+                console.log('onmessage: ' + event.data);
             };
             ws.on('close', function () {
                 console.log('connection closed');
