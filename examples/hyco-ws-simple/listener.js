@@ -13,19 +13,21 @@ if ( process.argv.length < 6) {
     var wss = WebSocket.createRelayedServer(
         {
             server : WebSocket.createRelayListenUri(ns, path),
-            token: WebSocket.createRelayToken('http://'+ns, keyrule, key)
+            keyName: keyrule,
+            key: key
         }, 
         function (ws) {
             console.log('connection accepted');
             ws.onmessage = function (event) {
-                console.log(JSON.parse(event.data));
+                console.log('onmessage: ' + event.data);
             };
             ws.on('close', function () {
                 console.log('connection closed');
             });       
-    });
+        }
+    );
 
     wss.on('error', function(err) {
-    console.log('error' + err);
+        console.log('error: ' + err);
     });
 }

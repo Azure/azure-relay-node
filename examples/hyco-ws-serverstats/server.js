@@ -23,7 +23,8 @@ if ( process.argv.length < 6) {
     WebSocket.createRelayedServer(
         {
             server : WebSocket.createRelayListenUri(_ns, _path),
-            token: WebSocket.createRelayToken('http://'+_ns, _keyrule, _key)
+            keyName: _keyrule,
+            key: _key
         }, function(ws) {
             var id = setInterval(function() {
               ws.send(JSON.stringify(process.memoryUsage()), function() { /* ignore errors */ });

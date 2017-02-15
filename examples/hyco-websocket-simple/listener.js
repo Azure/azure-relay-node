@@ -36,6 +36,6 @@ if ( process.argv.length < 6) {
         });       
     
     wss.on('error', function(err) {
-      console.log('error' + err);
+      console.log('error: ' + err);
     });
 }
