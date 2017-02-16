@@ -21,9 +21,9 @@ var WebSocketServer = require('../../lib/HybridConnectionsWebSocketServer');
 var args = { /* defaults */
     debug: false,
     ns : process.env.RELAY_NAMESPACE,
-    path : process.env.RELAY_PATH, 
+    path : process.env.RELAY_PATH,
     keyrule : process.env.RELAY_KEYRULE,
-    key : process.env.RELAY_KEY 
+    key : process.env.RELAY_KEY
 };
 
 /* Parse command line options */
@@ -43,13 +43,13 @@ var debug = args.debug;
 
 console.log('WebSocket-Node: echo-server');
 
-if ( ns == null || path == null || keyrule == null || key == null ) {
+if (ns == null || path == null || keyrule == null || key == null) {
     console.log('Usage: ./echo-server.js [--ns=ns.servicebus.windows.net] [--path=path] [--keyrule=keyrule] [--key=key] [--debug]');
     return;
 }
 
 var uri = WebSocket.createRelayListenUri(ns, path);
-    
+
 var wsServer = new WebSocketServer({
     server : uri,
     token: WebSocket.createRelayToken(uri, keyrule, key),
@@ -62,7 +62,7 @@ var wsServer = new WebSocketServer({
 });
 
 wsServer.on('connect', function(connection) {
-    if (debug) { console.log((new Date()) + ' Connection accepted' + 
+    if (debug) { console.log((new Date()) + ' Connection accepted' +
                             ' - Protocol Version ' + connection.webSocketVersion); }
     function sendCallback(err) {
         if (err) {

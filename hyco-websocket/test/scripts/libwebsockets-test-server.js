@@ -15,7 +15,6 @@
  *  limitations under the License.
  ***********************************************************************/
 
-
 var WebSocketServer = require('../../lib/WebSocketServer');
 var WebSocketRouter = require('../../lib/WebSocketRouter');
 var http = require('http');
@@ -84,7 +83,6 @@ var wsServer = new WebSocketServer({
 var router = new WebSocketRouter();
 router.attachServer(wsServer);
 
-
 var mirrorConnections = [];
 
 var mirrorHistory = [];
@@ -111,8 +109,6 @@ router.mount('*', 'lws-mirror-protocol', function(request) {
     console.log((new Date()) + ' lws-mirror-protocol connection accepted from ' + connection.remoteAddress +
                 ' - Protocol Version ' + connection.webSocketVersion);
 
-
-    
     if (mirrorHistory.length > 0) {
         var historyString = mirrorHistory.join('');
         console.log((new Date()) + ' sending mirror protocol history to client; ' + connection.remoteAddress + ' : ' + Buffer.byteLength(historyString) + ' bytes');
@@ -135,7 +131,7 @@ router.mount('*', 'lws-mirror-protocol', function(request) {
             }
 
             // Re-broadcast the command to all connected clients
-            mirrorConnections.forEach(function (outputConnection) {
+            mirrorConnections.forEach(function(outputConnection) {
                 outputConnection.send(message.utf8Data, sendCallback);
             });
         }

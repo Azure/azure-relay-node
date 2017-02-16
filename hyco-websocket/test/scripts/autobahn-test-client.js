@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /************************************************************************
  *  Copyright 2010-2015 Brian McKelvey.
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the 'License');
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an 'AS IS' BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,16 +37,15 @@ process.argv.forEach(function(value) {
 args.protocol = args.secure ? 'wss:' : 'ws:';
 
 console.log('WebSocket-Node: Echo test client for running against the Autobahn test suite');
-console.log('Usage: ./libwebsockets-test-client.js --host=127.0.0.1 --port=9000 [--secure]');
+console.log('Usage: ./autobahn-test-client.js --host=127.0.0.1 --port=9000 [--secure]');
 console.log('');
-
 
 console.log('Starting test run.');
 
 getCaseCount(function(caseCount) {
     var currentCase = 1;
     runNextTestCase();
-    
+
     function runNextTestCase() {
         runTestCase(currentCase++, caseCount, function() {
             if (currentCase <= caseCount) {
@@ -95,7 +94,7 @@ function runTestCase(caseIndex, caseCount, callback) {
             }
         });
     });
-    
+
     var qs = querystring.stringify({
         case: caseIndex,
         agent: 'WebSocket-Node Client v' + wsVersion

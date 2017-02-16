@@ -9,7 +9,9 @@ test('W3CWebSockets adding event listeners with ws.onxxxxx', function(t) {
   var message = 'This is a test message.';
 
   startEchoServer(function(err, echoServer) {
-    if (err) { return t.fail('Unable to start echo server: ' + err); }
+    if (err) {
+        return t.fail('Unable to start echo server: ' + err);
+    }
 
     var ws = new WebSocket('ws://localhost:8080/');
 

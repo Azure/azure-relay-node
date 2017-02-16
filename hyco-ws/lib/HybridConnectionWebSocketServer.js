@@ -8,20 +8,18 @@ const WebSocket = require('ws');
 const url = require('url');
 const moment = require('moment');
 
-// slightly awful workaround to pull submodules 
+// slightly awful workaround to pull submodules
 var wsc = require.cache[require.resolve('ws')]
 const Extensions = wsc.require('./lib/Extensions');
 const PerMessageDeflate = wsc.require('./lib/PerMessageDeflate');
 
-
-var isDefinedAndNonNull = function (options, key) {
+var isDefinedAndNonNull = function(options, key) {
   return typeof options[key] != 'undefined' && options[key] !== null;
 };
 
 /**
  * WebSocket Server implementation
  */
-
 function HybridConnectionsWebSocketServer(options, callback) {
   if (this instanceof HybridConnectionsWebSocketServer === false) {
     return new HybridConnectionsWebSocketServer(options, callback);
@@ -32,8 +30,6 @@ function HybridConnectionsWebSocketServer(options, callback) {
   options = Object.assign({
     server: null,
     token: null,
-    keyName: null,
-    key: null,
     id: null,
     verifyClient: null,
     handleProtocols: null,
@@ -43,14 +39,13 @@ function HybridConnectionsWebSocketServer(options, callback) {
     maxPayload: 100 * 1024 * 1024,
     backlog: null // use default (511 as implemented in net.js)
   }, options);
-  
+
   if (!isDefinedAndNonNull(options, 'server')) {
     throw new TypeError('\'server\' must be provided');
   }
-  
-  if (!isDefinedAndNonNull(options, 'token') &&
-    (!isDefinedAndNonNull(options, 'keyName') || !isDefinedAndNonNull(options, 'key'))) {
-    throw new TypeError('\'token\' or \'keyName\' and \'key\' must be provided');
+
+  if (!isDefinedAndNonNull(options, 'token')) {
+    throw new TypeError('A \'token\' string or function must be provided');
   }
 
   var self = this;
@@ -68,23 +63,18 @@ function HybridConnectionsWebSocketServer(options, callback) {
   connectControlChannel(this);
 }
 
-
-
 /**
  * Inherits from EventEmitter.
  */
 
 util.inherits(HybridConnectionsWebSocketServer, EventEmitter);
 
-
-
 /**
  * Immediately shuts down the connection.
  *
  * @api public
  */
-
-HybridConnectionsWebSocketServer.prototype.close = function (callback) {
+HybridConnectionsWebSocketServer.prototype.close = function(callback) {
   this.closeRequested = true;
   // terminate all associated clients
   var error = null;
@@ -98,10 +88,11 @@ HybridConnectionsWebSocketServer.prototype.close = function (callback) {
     error = e;
   }
 
-  if (callback)
+  if (callback) {
     callback(error);
-  else if (error)
+  } else if (error) {
     throw error;
+  }
 }
 
 function connectControlChannel(server) {
@@ -110,13 +101,15 @@ function connectControlChannel(server) {
   var opt = null;
   var token = null;
   var tokenRenewDuration = null;
-  if (server.options.token) {
-    token = server.options.token;
-  } else if (server.options.keyName && server.options.key) {
+  if (typeof server.options.token === 'function') {
+    // server.options.token is a function, call it periodically to renew the token
     tokenRenewDuration = new moment.duration(1, 'hours');
-    token = WebSocket.createRelayToken(server.options.server, server.options.keyName, server.options.key, tokenRenewDuration.asSeconds());
+    token = server.options.token();
+  } else {
+    // server.options.token is a string, the token cannot be renewed automatically
+    token = server.options.token;
   }
-  
+
   if (token) {
     opt = { headers: { 'ServiceBusAuthorization': token } };
   }
@@ -125,8 +118,8 @@ function connectControlChannel(server) {
 
   // This represents the token renew timer/interval, keep a reference in order to cancel it.
   var tokenRenewTimer = null;
-  
-  server.controlChannel.onerror = function (event) {
+
+  server.controlChannel.onerror = function(event) {
     server.emit('error', event);
     clearInterval(tokenRenewTimer);
     if (!server.closeRequested) {
@@ -134,11 +127,11 @@ function connectControlChannel(server) {
     }
   }
 
-  server.controlChannel.onopen = function (event) {
+  server.controlChannel.onopen = function(event) {
     server.emit('listening');
   }
 
-  server.controlChannel.onclose = function (event) {
+  server.controlChannel.onclose = function(event) {
     clearInterval(tokenRenewTimer);
 
     if (!server.closeRequested) {
@@ -148,22 +141,23 @@ function connectControlChannel(server) {
       server.emit('close', server);
     }
   }
-  
-  server.controlChannel.onmessage = function (event) {
+
+  server.controlChannel.onmessage = function(event) {
     var message = JSON.parse(event.data);
     if (isDefinedAndNonNull(message, 'accept')) {
       accept(server, message);
     }
   };
-  
+
   if (tokenRenewDuration) {
-    tokenRenewTimer = setInterval(function () {
+    // tokenRenewDuration having a value means server.options.token is a function, renew the token periodically
+    tokenRenewTimer = setInterval(function() {
       if (!server.closeRequested) {
-        var newToken = WebSocket.createRelayToken(server.options.server, server.options.keyName, server.options.key, tokenRenewDuration.asSeconds());
+        var newToken = server.options.token();
         var renewToken = { 'renewToken' : { 'token' : newToken } };
         server.controlChannel.send(
           JSON.stringify(renewToken),
-          function (error) {
+          function(error) {
             if (error) {
               console.log('renewToken error: ' + error);
             }
@@ -204,7 +198,7 @@ function accept(server, message) {
 
   // handler to call when the connection sequence completes
   var self = server;
-  var completeHybiUpgrade2 = function (protocol) {
+  var completeHybiUpgrade2 = function(protocol) {
 
     var extensions = {};
     try {
@@ -216,7 +210,7 @@ function accept(server, message) {
 
     if (Object.keys(extensions).length) {
       var serverExtensions = {};
-      Object.keys(extensions).forEach(function (token) {
+      Object.keys(extensions).forEach(function(token) {
         serverExtensions[token] = [extensions[token].params]
       });
       headers.push('Sec-WebSocket-Extensions: ' + Extensions.format(serverExtensions));
@@ -227,12 +221,11 @@ function accept(server, message) {
 
     try {
       var client = new WebSocket(address, protocol, {
-        rejectUnauthorized: false,
         headers: headers,
         perMessageDeflate: false
       });
 
-      client.on('error', function (event) {
+      client.on('error', function(event) {
         var index = server.clients.indexOf(client);
         if (index != -1) {
           server.clients.splice(index, 1);
@@ -242,7 +235,7 @@ function accept(server, message) {
       server.emit('connection', client);
       if (self.options.clientTracking) {
         self.clients.push(client);
-        client.on('close', function () {
+        client.on('close', function() {
           var index = self.clients.indexOf(client);
           if (index != -1) {
             self.clients.splice(index, 1);
@@ -256,12 +249,12 @@ function accept(server, message) {
 
   // optionally call external protocol selection handler before
   // calling completeHybiUpgrade2
-  var completeHybiUpgrade1 = function () {
+  var completeHybiUpgrade1 = function() {
     // choose from the sub-protocols
     if (typeof self.options.handleProtocols == 'function') {
       var protList = (protocols || '').split(/, */);
       var callbackCalled = false;
-      self.options.handleProtocols(protList, function (result, protocol) {
+      self.options.handleProtocols(protList, function(result, protocol) {
         callbackCalled = true;
         if (!result) abortConnection(socket, 401, 'Unauthorized');
         else completeHybiUpgrade2(protocol);
@@ -298,14 +291,13 @@ function acceptExtensions(offer) {
 
 function abortConnection(message, status, reason) {
 
-  var client = new WebSocketClient({ tlsOptions: { rejectUnauthorized: false } });
-  var rejectUri = message.address + "&statusCode=" + status + "&statusDescription" + encodeURIComponent(reason);
+  var client = new WebSocketClient();
+  var rejectUri = message.address + '&statusCode=' + status + '&statusDescription=' + encodeURIComponent(reason);
 
   client.connect(rejectUri, null, null);
-  client.on('error', function (connection) {
+  client.on('error', function(connection) {
     this.emit('requestRejected', this);
   });
 }
-
 
 module.exports = HybridConnectionsWebSocketServer;

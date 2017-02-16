@@ -3,17 +3,17 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // var heapdump = require('heapdump');
 // var memwatch = require('memwatch');
 var fs = require('fs');
-var WebSocketServer = require('../../lib/websocket').server;
+var WebSocketServer = require('../../lib/websocket').server;  // Is this module even present?
 var https = require('https');
 
 var activeCount = 0;
 
-var config = { 
-    key: fs.readFileSync( 'privatekey.pem' ), 
-    cert: fs.readFileSync( 'certificate.pem' )  
+var config = {
+    key: fs.readFileSync('privatekey.pem'),
+    cert: fs.readFileSync('certificate.pem')
 };
 
-var server = https.createServer( config );
+var server = https.createServer(config);
 
 server.listen(8080, function() {
     console.log((new Date()) + ' Server is listening on port 8080 (wss)');
@@ -21,7 +21,7 @@ server.listen(8080, function() {
 
 var wsServer = new WebSocketServer({
     httpServer: server,
-    autoAcceptConnections: false    
+    autoAcceptConnections: false
 });
 
 wsServer.on('request', function(request) {
@@ -37,7 +37,7 @@ wsServer.on('request', function(request) {
                 connection.sendUTF(message.utf8Data);
               }
             }, 1000);
-        }       
+        }
     });
     connection.on('close', function(reasonCode, description) {
         activeCount--;
@@ -50,10 +50,10 @@ wsServer.on('request', function(request) {
     });
 });
 
-// setInterval( function(){
+// setInterval( function() {
 //     // global.gc();
-//     var filename = './heapdump/'+ new Date().getTime() + '_' + activeCount + '.heapsnapshot';
+//     var filename = './heapdump/' + new Date().getTime() + '_' + activeCount + '.heapsnapshot';
 //     console.log('Triggering heapdump to write to %s', filename);
-//     heapdump.writeSnapshot( filename );
+//     heapdump.writeSnapshot(filename);
 // }, 10000 );
 // memwatch.on('leak', function(info) { console.log(info); });

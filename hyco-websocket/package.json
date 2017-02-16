@@ -30,7 +30,6 @@
     "crypto": "latest",
     "moment": "latest",
     "url": "latest",
-    "wait.for": "latest",
     "events": "latest",
     "querystring" : "latest"
   },

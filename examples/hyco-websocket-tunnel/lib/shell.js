@@ -8,7 +8,7 @@ var paused, passwordMode;
 
 //Hack to hide mask characters from output
 var normalWrite = process.stdout.write;
-var dummyWrite = function (data) {
+var dummyWrite = function(data) {
   var args = Array.prototype.slice.call(arguments);
   if (typeof data == 'string') {
     //todo: deal with control characters like backspace
@@ -17,35 +17,35 @@ var dummyWrite = function (data) {
   normalWrite.apply(process.stdout, args);
 };
 
-rl.on('SIGINT', function () {
+rl.on('SIGINT', function() {
   shell.exit();
 });
 
-shell.pause = function (s) {
+shell.pause = function(s) {
   process.stdin.pause();
   rl.pause();
   paused = true;
 };
 
-shell.resume = function (s) {
+shell.resume = function(s) {
   process.stdin.resume();
   rl.resume();
   paused = false;
 };
 
-shell.echo = function (s) {
+shell.echo = function(s) {
   var args = Array.prototype.slice.call(arguments);
   for (var i = 0; i < args.length; i++) {
     shell.writeLine(args[i]);
   }
 };
 
-shell.setPasswordMode = function (enabled) {
+shell.setPasswordMode = function(enabled) {
   passwordMode = !!enabled;
   process.stdout.write = (enabled) ? dummyWrite : normalWrite;
 };
 
-shell.writeLine = function (s) {
+shell.writeLine = function(s) {
   if (paused) {
     rl.output.write(s);
     rl.output.write('\n');
@@ -71,7 +71,7 @@ shell.writeLine = function (s) {
 };
 
 var lineHandler;
-rl.on('line', function (line) {
+rl.on('line', function(line) {
   shell.pause();
   if (passwordMode) {
     shell.setPasswordMode(false);
@@ -85,7 +85,7 @@ rl.on('line', function (line) {
   }
 });
 
-shell.prompt = function (query, callback, opts) {
+shell.prompt = function(query, callback, opts) {
   opts = opts || {};
   lineHandler = callback;
   rl.setPrompt(query || '> ');
@@ -96,7 +96,7 @@ shell.prompt = function (query, callback, opts) {
   }
 };
 
-shell.exit = function () {
+shell.exit = function() {
   rl.close();
   process.stdin.destroy();
   process.exit();
@@ -104,3 +104,4 @@ shell.exit = function () {
 
 //start initially paused
 rl.pause();
+ 

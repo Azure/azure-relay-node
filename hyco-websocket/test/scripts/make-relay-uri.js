@@ -6,9 +6,9 @@ var WebSocketServer = require('../../lib/HybridConnectionsWebSocketServer');
 var args = { /* defaults */
     debug: false,
     ns : process.env.RELAY_NAMESPACE,
-    path : process.env.RELAY_PATH, 
+    path : process.env.RELAY_PATH,
     keyrule : process.env.RELAY_KEYRULE,
-    key : process.env.RELAY_KEY 
+    key : process.env.RELAY_KEY
 };
 
 /* Parse command line options */
@@ -26,7 +26,7 @@ var keyrule = args.keyrule;
 var key = args.key;
 var debug = args.debug;
 
-if ( ns == null || path == null || keyrule == null || key == null ) {
+if (ns == null || path == null || keyrule == null || key == null) {
     return;
 }
 

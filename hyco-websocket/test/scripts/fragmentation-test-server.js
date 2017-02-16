@@ -15,7 +15,6 @@
  *  limitations under the License.
  ***********************************************************************/
 
-
 var WebSocketServer = require('../../lib/WebSocketServer');
 var WebSocketRouter = require('../../lib/WebSocketRouter');
 var http = require('http');
@@ -83,9 +82,7 @@ var wsServer = new WebSocketServer({
 var router = new WebSocketRouter();
 router.attachServer(wsServer);
 
-
 var lorem = 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat.';
-
 
 router.mount('*', 'fragmentation-test', function(request) {
     var connection = request.accept(request.origin);
@@ -122,7 +119,7 @@ router.mount('*', 'fragmentation-test', function(request) {
                 
                 // Generate random binary data.
                 var buffer = new Buffer(requestedLength);
-                for (var i=0; i < requestedLength; i++) {
+                for (var i = 0; i < requestedLength; i++) {
                     buffer[i] = Math.ceil(Math.random()*255);
                 }
                 

@@ -14,8 +14,8 @@ process.argv.forEach(function(value) {
     }
 });
 
-if ( args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
-    console.log("sender.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]");
+if (args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
+    console.log('sender.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]');
 } else {
 
     var WebSocket = require('../..')
@@ -23,13 +23,13 @@ if ( args.ns == null || args.path == null || args.keyrule == null || args.key ==
     WebSocket.relayedConnect(
         uri,
         WebSocket.createRelayToken(uri, args.keyrule, args.key),
-        function (wss) {
-            var id = setInterval(function () {
-                wss.send(JSON.stringify(process.memoryUsage()), function () { /* ignore errors */ });
+        function(wss) {
+            var id = setInterval(function() {
+                wss.send(JSON.stringify(process.memoryUsage()), function() { /* ignore errors */ });
             }, 100);
 
             console.log('Started client interval. Press any key to stop.');
-            wss.on('close', function () {
+            wss.on('close', function() {
                 console.log('stopping client interval');
                 clearInterval(id);
                 process.exit();
@@ -37,7 +37,7 @@ if ( args.ns == null || args.path == null || args.keyrule == null || args.key ==
 
             process.stdin.setRawMode(true);
             process.stdin.resume();
-            process.stdin.on('data', function () {
+            process.stdin.on('data', function() {
                 wss.close();
             });
         }

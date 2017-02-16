@@ -44,7 +44,7 @@ test('Request can only be rejected or accepted once.', function(t) {
     
     function connect(numTimes) {
       var client;
-      for (var i=0; i < numTimes; i++) {
+      for (var i = 0; i < numTimes; i++) {
         client = new WebSocketClient();
         client.connect('ws://localhost:64321/', 'foo');
         client.on('connect', function(connection) { connection.close(); });
@@ -52,7 +52,6 @@ test('Request can only be rejected or accepted once.', function(t) {
     }
   });
 });
-
 
 test('Protocol mismatch should be handled gracefully', function(t) {
   var wsServer;

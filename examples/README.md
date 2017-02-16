@@ -2,7 +2,7 @@
 
 ## Examples for 'websocket' users
 
-if you're familiar with the ['websocket'](https://www.npmjs.com/package/websocket) Node package,
+If you're familiar with the ['websocket'](https://www.npmjs.com/package/websocket) Node package,
 these examples are the place to start: 
 
 * [Simple Sender and Listener](./hyco-websocket-simple)
