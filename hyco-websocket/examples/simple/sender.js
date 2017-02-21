@@ -17,7 +17,6 @@ process.argv.forEach(function(value) {
 if (args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
     console.log('sender.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]');
 } else {
-
     var WebSocket = require('../../')
     var WebSocketClient = WebSocket.client
 

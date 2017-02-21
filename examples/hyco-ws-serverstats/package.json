@@ -1,11 +1,10 @@
-
 {
   "author": "",
   "name": "serverstats",
   "version": "0.0.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/clemensv/azure-hybridconnections.git"
+    "url": "git://github.com/Azure/azure-relay-node.git"
   },
   "engines": {
     "node": ">0.4.0"
