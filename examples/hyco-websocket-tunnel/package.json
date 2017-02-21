@@ -1,9 +1,9 @@
 {
-  "name": "node-websocket-tunnel",
+  "name": "hyco-websocket-tunnel",
   "version": "1.0.0",
   "repository" : {
         "type" : "git",
-        "url" : "git://github.com/clemensv/node-websocket-tunnel.git"
+        "url" : "git://github.com/Azure/azure-relay-node.git"
     },
   "dependencies": {
     "optimist": "^0.3.1",

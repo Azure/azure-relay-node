@@ -56,7 +56,7 @@ mirrorClient.on('connect', function(connection) {
     });
     connection.on('close', function() {
         console.log('lws-mirror-protocol Connection Closed');
-    });  
+    });
     function sendCallback(err) {
         if (err) { console.error('send() error: ' + err); }
     }
@@ -75,7 +75,6 @@ mirrorClient.on('connect', function(connection) {
 });
 
 mirrorClient.connect(args.protocol + '//' + args.host + ':' + args.port + '/', 'lws-mirror-protocol');
-
 
 var incrementClient = new WebSocketClient({
     webSocketVersion: args.version

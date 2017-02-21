@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /************************************************************************
  *  Copyright 2010-2015 Brian McKelvey.
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the 'License');
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an 'AS IS' BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,7 +75,7 @@ client.on('connect', function(connection) {
 
     connection.on('close', function() {
         console.log('Connection Closed');
-    });  
+    });
 
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
@@ -89,7 +89,7 @@ client.on('connect', function(connection) {
             requestData();
         }
     });
-    
+
     connection.on('frame', function(frame) {
         console.log('Frame: 0x' + frame.opcode.toString(16) + '; ' + frame.length + ' bytes; Flags: ' + renderFlags(frame));
         messageSize += frame.length;
@@ -100,7 +100,7 @@ client.on('connect', function(connection) {
             requestData();
         }
     });
-    
+
     function logThroughput(numBytes) {
         byteCounter += numBytes;
         var duration = (new Date()).valueOf() - startTime.valueOf();
@@ -115,7 +115,7 @@ client.on('connect', function(connection) {
     function sendUTFCallback(err) {
         if (err) { console.error('sendUTF() error: ' + err); }
     }
-    
+
     function requestData() {
         if (args.binary) {
             connection.sendUTF('sendBinaryMessage|' + requestedLength, sendUTFCallback);
@@ -125,7 +125,7 @@ client.on('connect', function(connection) {
         }
         requestedLength += Math.ceil(Math.random() * 1024);
     }
-    
+
     function renderFlags(frame) {
         var flags = [];
         if (frame.fin) {
@@ -148,7 +148,7 @@ client.on('connect', function(connection) {
         }
         return flags.join(' ');
     }
-    
+
     requestData();
 });
 

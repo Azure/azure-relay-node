@@ -5,7 +5,9 @@ var startEchoServer = require('../shared/start-echo-server');
 
 test('Issue 195 - passing number to connection.send() shouldn\'t throw', function(t) {
   startEchoServer(function(err, echoServer) {
-    if (err) { return t.fail('Unable to start echo server: ' + err); }
+    if (err) {
+        return t.fail('Unable to start echo server: ' + err);
+    }
     
     var client = new WebSocketClient();
     client.on('connect', function(connection) {

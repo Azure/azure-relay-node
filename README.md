@@ -10,7 +10,7 @@
 |hyco-websocket|[![npm version](https://badge.fury.io/js/hyco-websocket.svg)](https://badge.fury.io/js/hyco-websocket)|
 
 This repository contains Node packages and samples for the Hybrid Connections feature of the 
-Microsoft Azure Relay, a capability pilar of the Azure Service Bus platform.
+Microsoft Azure Relay, a capability pillar of the Azure Service Bus platform.
 
 Hybrid Connections is a secure, open-protocol evolution of the existing Service Bus Relay 
 service that has been available in Azure since the beginning and handles millions of connections 
@@ -30,10 +30,8 @@ The WebSocket server code will look instantly familiar as it is directly based o
 with two of the most popular existing WebSocket packages in the Node universe: "ws" and "websocket". 
 
 ``` JS
-
 require('ws') ==> require('hyco-ws')
 require('websocket') ==> require('hyco-websocket')
-
 ```
 
 As you create a WebSocket server using either of the alternate "hyco-ws" and "hyco-websocket" 
@@ -55,11 +53,11 @@ experience is analogous and explained in the package's README.
 ``` JS
     var WebSocket = require('hyco-ws');
 
+    var uri = WebSocket.createRelayListenUri(ns, path);
     var wss = WebSocket.RelayedServer(
         {
-            // create the 
-            server : WebSocket.createRelayListenUri(ns, path),
-            token: WebSocket.createRelayToken('http://'+ns, keyrule, key)
+            server : uri,
+            token: function() { return WebSocket.createRelayToken(uri, keyrule, key); }
         });
 
     wss.on('connection', function (ws) {
@@ -73,7 +71,7 @@ experience is analogous and explained in the package's README.
     });
 
     wss.on('error', function(err) {
-        console.log('error' + err);
+        console.log('error: ' + err);
     });
 ```
 

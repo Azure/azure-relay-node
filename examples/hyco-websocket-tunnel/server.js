@@ -1,8 +1,8 @@
 var fs = require('fs');
 var net = require('net');
 var urlParse = require('url').parse;
-var WebSocket = require('../hyco-websocket');
-var WebSocketServer = require('../hyco-websocket').server;
+var WebSocket = require('hyco-websocket');
+var WebSocketServer = require('hyco-websocket').relayedServer;
 
 process.chdir(__dirname);
 
@@ -36,7 +36,7 @@ if (argv.pidfile) {
 var users = loadUsers();
 
 if (argv._.length < 4) {
-  console.log("server.js [namespace] [path] [key-rule] [key]")
+  console.log('server.js [namespace] [path] [key-rule] [key]')
   process.exit(1);
 }
 
@@ -46,11 +46,13 @@ var keyrule = argv._[2];
 var key = argv._[3];
 
 var wsServer = new WebSocketServer({
-    server: WebSocket.createRelayListenUri(ns, path),
-    token: WebSocket.createRelayToken('http://' + ns, keyrule, key),
-  });
+  server: WebSocket.createRelayListenUri(ns, path),
+  token: function() {
+    return WebSocket.createRelayToken('http://' + ns, keyrule, key);
+  }
+});
 
-wsServer.on('request', function (request) {
+wsServer.on('request', function(request) {
   var url = urlParse(request.resource, true);
   var args = url.pathname.split('/').slice(1);
   var action = args.shift();
@@ -61,7 +63,6 @@ wsServer.on('request', function (request) {
     request.reject(404);
   }
 });
-
 
 function authenticate(request) {
   var encoded = request.headers['authorization'] || '', credentials;
@@ -80,25 +81,25 @@ function createTunnel(request, port, host) {
     request.reject(403);
     return;
   }
-  request.accept(null, null, null, function (webSock) {
+  request.accept(null, null, null, function(webSock) {
     console.log(webSock.remoteAddress + ' connected - Protocol Version ' + webSock.webSocketVersion);
 
     var tcpSock = new net.Socket();
 
-    tcpSock.on('error', function (err) {
+    tcpSock.on('error', function(err) {
       webSock.send(JSON.stringify({ status: 'error', details: 'Upstream socket error; ' + err }));
     });
 
-    tcpSock.on('data', function (data) {
+    tcpSock.on('data', function(data) {
       webSock.send(data);
     });
 
-    tcpSock.on('close', function () {
+    tcpSock.on('close', function() {
       webSock.close();
     });
 
-    tcpSock.connect(port, host || '127.0.0.1', function () {
-      webSock.on('message', function (msg) {
+    tcpSock.connect(port, host || '127.0.0.1', function() {
+      webSock.on('message', function(msg) {
         if (msg.type === 'utf8') {
           //console.log('received utf message: ' + msg.utf8Data);
         } else {
@@ -109,7 +110,7 @@ function createTunnel(request, port, host) {
       webSock.send(JSON.stringify({ status: 'ready', details: 'Upstream socket connected' }));
     });
 
-    webSock.on('close', function () {
+    webSock.on('close', function() {
       tcpSock.destroy();
       console.log(webSock.remoteAddress + ' disconnected');
     });
@@ -119,7 +120,7 @@ function createTunnel(request, port, host) {
 function loadUsers() {
   var lines = fs.readFileSync('./users.txt', 'utf8');
   var users = {};
-  lines.split(/[\r\n]+/g).forEach(function (line) {
+  lines.split(/[\r\n]+/g).forEach(function(line) {
     var parts = line.split(':');
     if (parts.length == 2) {
       users[parts[0]] = parts[1];

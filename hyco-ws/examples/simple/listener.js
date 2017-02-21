@@ -14,8 +14,8 @@ process.argv.forEach(function(value) {
     }
 });
 
-if ( args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
-    console.log("listener.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]");
+if (args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
+    console.log('listener.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]');
 } else {
 
     var WebSocket = require('../../')
@@ -25,18 +25,18 @@ if ( args.ns == null || args.path == null || args.keyrule == null || args.key ==
             server : uri,
             keyName: args.keyrule,
             key: args.key
-        }, 
-        function (ws) {
+        },
+        function(ws) {
             console.log('connection accepted');
-            ws.onmessage = function (event) {
+            ws.onmessage = function(event) {
                 console.log(JSON.parse(event.data));
             };
-            ws.on('close', function () {
+            ws.on('close', function() {
                 console.log('connection closed');
-            });       
-    });
+            });
+        });
 
     wss.on('error', function(err) {
-    console.log('error' + err);
+    console.log('error: ' + err);
     });
 }

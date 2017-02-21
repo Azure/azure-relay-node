@@ -13,18 +13,14 @@ function logActiveCount() {
 setInterval(logActiveCount, 500);
 
 function connectDevices() {
-    for( var i=0; i < connectionAmount; i++ ){
-        connect( i );
+    for (var i = 0; i < connectionAmount; i++) {
+        connect(i);
     }
 }
 
-function connect( i ){          
-    // console.log( '--- Connecting: ' + i );
-    var client = new WebSocketClient({
-        tlsOptions: {
-            rejectUnauthorized: false
-        }
-    }); 
+function connect(i) {
+    // console.log('--- Connecting: ' + i);
+    var client = new WebSocketClient();
     client._clientID = i;
     deviceList[i] = client;
 
@@ -34,10 +30,10 @@ function connect( i ){
 
     client.on('connect', function(connection) {
         console.log(i + ' - connect');
-        activeCount ++;
+        activeCount++;
         client.connection = connection;
-        flake( i );
-        
+        flake(i);
+
         maybeScheduleSend(i);
 
         connection.on('error', function(error) {
@@ -55,16 +51,15 @@ function connect( i ){
         });
 
         connection.on('message', function(message) {
-            if ( message.type === 'utf8' ) {
+            if (message.type === 'utf8') {
                 console.log(i + ' received: \'' + message.utf8Data + '\'');
             }
-        });     
-
+        });
     });
     client.connect('wss://localhost:8080');
 }
 
-function disconnect( i ){
+function disconnect(i) {
     var client = deviceList[i];
     if (client._flakeTimeout) {
         client._flakeTimeout = null;
@@ -81,7 +76,7 @@ function maybeScheduleSend(i) {
             console.log(i + ' - send timeout.  Connected? ' + client.connection.connected);
             if (client && client.connection.connected) {
                 console.log(i + ' - Sending test data! random: ' + random);
-                client.connection.send( (new Array(random)).join('TestData') );
+                client.connection.send((new Array(random)).join('TestData'));
             }
         }, random);
     }

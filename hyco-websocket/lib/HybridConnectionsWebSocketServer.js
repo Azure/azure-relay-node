@@ -1,6 +1,6 @@
 /************************************************************************
  *  Copyright 2010-2015 Brian McKelvey.
- *  Derivative Copyright Microsoft Corporation 
+ *  Derivative Copyright Microsoft Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ const EventEmitter = require('events').EventEmitter;
 const WebSocketClient = require('websocket').client;
 const WebSocketRequest = require('./HybridConnectionsWebSocketRequest');
 const querystring = require('querystring');
+const moment = require('moment');
 
-var isDefinedAndNonNull = function (options, key) {
+var isDefinedAndNonNull = function(options, key) {
     return typeof options[key] != 'undefined' && options[key] !== null;
 };
 
@@ -45,11 +46,11 @@ var HybridConnectionsWebSocketServer = function HybridConnectionsWebSocketServer
 
 util.inherits(HybridConnectionsWebSocketServer, EventEmitter);
 
-HybridConnectionsWebSocketServer.prototype.open = function (config) {
+HybridConnectionsWebSocketServer.prototype.open = function(config) {
     this.config = {
         // hybrid connection endpoint address
         server: null,
-        // listen token
+        // listen token string or callback to generate one
         token: null,
         // identifier
         id: null,
@@ -136,25 +137,25 @@ HybridConnectionsWebSocketServer.prototype.open = function (config) {
         connectControlChannel(this);
     }
     else {
-        throw new Error('You must specify an hybrid connections server address on which to open the WebSocket server.');
+        throw new Error('You must specify a hybrid connections server address on which to open the WebSocket server.');
     }
 };
 
-HybridConnectionsWebSocketServer.prototype.close = function () {
+HybridConnectionsWebSocketServer.prototype.close = function() {
     this.closeRequested = true;
-    if ( this.controlChannel ) {
+    if (this.controlChannel) {
         this.controlChannel.close();
     }
     this.closeAllConnections();
 };
 
-HybridConnectionsWebSocketServer.prototype.closeAllConnections = function () {
-    this.connections.forEach(function (connection) {
+HybridConnectionsWebSocketServer.prototype.closeAllConnections = function() {
+    this.connections.forEach(function(connection) {
         connection.close();
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcast = function (data) {
+HybridConnectionsWebSocketServer.prototype.broadcast = function(data) {
     if (Buffer.isBuffer(data)) {
         this.broadcastBytes(data);
     }
@@ -163,37 +164,37 @@ HybridConnectionsWebSocketServer.prototype.broadcast = function (data) {
     }
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcastUTF = function (utfData) {
-    this.connections.forEach(function (connection) {
+HybridConnectionsWebSocketServer.prototype.broadcastUTF = function(utfData) {
+    this.connections.forEach(function(connection) {
         connection.sendUTF(utfData);
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.broadcastBytes = function (binaryData) {
-    this.connections.forEach(function (connection) {
+HybridConnectionsWebSocketServer.prototype.broadcastBytes = function(binaryData) {
+    this.connections.forEach(function(connection) {
         connection.sendBytes(binaryData);
     });
 };
 
-HybridConnectionsWebSocketServer.prototype.shutDown = function () {
+HybridConnectionsWebSocketServer.prototype.shutDown = function() {
     this.closeAllConnections();
 };
 
-HybridConnectionsWebSocketServer.prototype.handleRequestAccepted = function (connection) {
+HybridConnectionsWebSocketServer.prototype.handleRequestAccepted = function(connection) {
     var self = this;
-    connection.once('close', function (closeReason, description) {
+    connection.once('close', function(closeReason, description) {
         self.handleConnectionClose(connection, closeReason, description);
     });
     this.connections.push(connection);
     this.emit('connect', connection);
 };
 
-HybridConnectionsWebSocketServer.prototype.handleRequestResolved = function (request) {
+HybridConnectionsWebSocketServer.prototype.handleRequestResolved = function(request) {
     var index = this.pendingRequests.indexOf(request);
     if (index !== -1) { this.pendingRequests.splice(index, 1); }
 };
 
-HybridConnectionsWebSocketServer.prototype.handleConnectionClose = function (closeReason, description) {
+HybridConnectionsWebSocketServer.prototype.handleConnectionClose = function(closeReason, description) {
     console.log(description);
 }
 
@@ -201,33 +202,48 @@ function connectControlChannel(server) {
     /* create the control connection */
 
     var headers = null;
+    var tokenRenewDuration = null;
     if (server.config.token != null) {
-        headers = { 'ServiceBusAuthorization': server.config.token };
+        var token = null;
+        if (typeof server.config.token === 'function') {
+            // server.config.token is a function, call it periodically to renew the token
+            tokenRenewDuration = new moment.duration(1, 'hours');
+            token = server.config.token();
+        } else {
+            // server.config.token is a string, the token cannot be renewed automatically
+            token = server.config.token;
+        }
+
+        headers = { 'ServiceBusAuthorization': token };
     };
 
+    // This represents the token renew timer/interval, keep a reference in order to cancel it.
+    var tokenRenewTimer = null;
 
     var client = new WebSocketClient();
     client.connect(server.listenUri, null, null, headers);
-    client.on('connect', function (connection) {
+    client.on('connect', function(connection) {
         server.controlChannel = connection;
-        server.controlChannel.on('error', function (event) {
+        server.controlChannel.on('error', function(event) {
             server.emit('error', event);
+            clearInterval(tokenRenewTimer);
             if (!closeRequested) {
                 connectControlChannel(server);
             }
         });
 
-        server.controlChannel.on('close', function (event) {
-            // reconnect
+        server.controlChannel.on('close', function(event) {
+            clearInterval(tokenRenewTimer);
             if (!closeRequested) {
+                // reconnect
                 connectControlChannel(server);
             } else {
                 server.controlChannel = null;
-                server.emit('close', server);                
+                server.emit('close', server);
             }
-
         });
-        server.controlChannel.on('message', function (message) {
+
+        server.controlChannel.on('message', function(message) {
             if (message.type === 'utf8') {
                 try {
                     handleControl(server, JSON.parse(message.utf8Data));
@@ -238,9 +254,30 @@ function connectControlChannel(server) {
             }
         });
     });
-    client.on('connectFailed', function (event) { 
+
+    client.on('connectFailed', function(event) {
         console.log(event);
     });
+
+    if (tokenRenewDuration) {
+        // tokenRenewDuration having a value means server.config.token is a function, renew the token periodically
+        tokenRenewTimer = setInterval(function() {
+            if (!server.closeRequested) {
+                var newToken = server.config.token();
+                console.log('Renewing Token: ' + newToken);
+                var renewToken = { 'renewToken' : { 'token' : newToken } };
+                server.controlChannel.send(
+                    JSON.stringify(renewToken),
+                    function(error) {
+                        if (error) {
+                            console.log('renewToken error: ' + error);
+                        }
+                    }
+                );
+            }
+        },
+        tokenRenewDuration.asMilliseconds());
+    }
 }
 
 function handleControl(server, message) {

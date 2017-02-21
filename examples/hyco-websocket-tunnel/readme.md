@@ -55,5 +55,4 @@ is handles by the cloud service for both legs of the network connection.
 > program with a valid send key, have interactively entered a password held in users.txt *and* have explicitly 
 > opened the tunnel (three boundaries), there is no further protection mechanism for the destination 
 > other than what it itself provided as a native security model. (It shouldn't be necessary to make
-> that point, but better be safe)  
-   
+> that point, but better be safe)

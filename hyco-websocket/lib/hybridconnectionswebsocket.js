@@ -1,4 +1,4 @@
-var websocket = require('websocket')
+var websocket = require('websocket');
 
 module.exports = {
     'server'         : websocket.server,

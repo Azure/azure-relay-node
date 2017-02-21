@@ -40,7 +40,6 @@ test('Drop TCP Connection Before server accepts the request', function(t) {
           t.fail('No error events should be received on the connection');
           stopServer();
         });
-        
       }, 500);
     });
     
@@ -57,7 +56,6 @@ test('Drop TCP Connection Before server accepts the request', function(t) {
     setTimeout(function() {
       // Bail on the connection before we hear back from the server.
       client.abort();
-    }, 250);
-    
+    }, 250);    
   });
 });

@@ -1,11 +1,11 @@
 var net = require('net');
-var WebSocketClient = require('../../hyco-websocket').client;
+var WebSocketClient = require('hyco-websocket').client;
 
 exports.createTunnel = function(wsServerAddr, token, credentials, listen, forward, callback) {
   listen = parseAddr(listen, {host: '0.0.0.0', port: '8080'});
   forward = parseAddr(forward, {host: '127.0.0.1', port: listen.port});
 
-  var server = net.createServer(function (tcpSock) {
+  var server = net.createServer(function(tcpSock) {
 
     var wsClient = new WebSocketClient();
 
@@ -52,7 +52,7 @@ exports.createTunnel = function(wsServerAddr, token, credentials, listen, forwar
       }
 
       webSock = connection;
-      webSock.on('message', function (msg) {
+      webSock.on('message', function(msg) {
         if (msg.type == 'utf8') {
           //log('Received UTF8 message');
           var data = JSON.parse(msg.utf8Data);
@@ -66,7 +66,7 @@ exports.createTunnel = function(wsServerAddr, token, credentials, listen, forwar
         }
       });
 
-      webSock.on('close', function (reasonCode, description) {
+      webSock.on('close', function(reasonCode, description) {
         log('WebSocket closed; ' + reasonCode + '; ' + description);
         tcpSock.destroy();
       });
@@ -79,13 +79,13 @@ exports.createTunnel = function(wsServerAddr, token, credentials, listen, forwar
     });
 
     var url = wsServerAddr; //+ '&port=' + forward.port + '&host=' + forward.host;
-    wsClient.connect(url, null, null, 
-      { 'ServiceBusAuthorization' : token, 
+    wsClient.connect(url, null, null,
+      { 'ServiceBusAuthorization' : token,
         'Authorization': 'Basic ' + new Buffer(credentials).toString('base64')});
 
   });
 
-  server.on('error', function (err) {
+  server.on('error', function(err) {
     callback(err);
   });
 
@@ -114,7 +114,6 @@ function parseAddr(str, addr) {
   return addr;
 }
 
-
 function log(s) {
   if (global.shell) {
     global.shell.echo(s);
@@ -122,3 +121,4 @@ function log(s) {
     console.log(s);
   }
 }
+ 

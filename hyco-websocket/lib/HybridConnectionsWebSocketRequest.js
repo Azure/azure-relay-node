@@ -20,7 +20,6 @@ var url = require('url');
 var EventEmitter = require('events').EventEmitter;
 var WebSocketClient = require('websocket').client;
 var WebSocketConnection = require('websocket').connection;
-var wait = require('wait.for');
 
 var headerValueSplitRegExp = /,\s*/;
 var headerParamSplitRegExp = /;\s*/;
@@ -32,19 +31,8 @@ var separators = [
     '/', '[', ']', '?', '=',
     '{', '}', ' ', String.fromCharCode(9)
 ];
-var controlChars = [String.fromCharCode(127) /* DEL */];
-for (var i=0; i < 31; i ++) {
-    /* US-ASCII Control Characters */
-    controlChars.push(String.fromCharCode(i));
-}
 
-var cookieNameValidateRegEx = /([\x00-\x20\x22\x28\x29\x2c\x2f\x3a-\x3f\x40\x5b-\x5e\x7b\x7d\x7f])/;
-var cookieValueValidateRegEx = /[^\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]/;
-var cookieValueDQuoteValidateRegEx = /^"[^"]*"$/;
-var controlCharsAndSemicolonRegEx = /[\x00-\x20\x3b]/g;
 var cookieSeparatorRegEx = /[;,] */;
-
-
 
 function HybridConnectionsWebSocketRequest(address, id, httpHeaders, serverConfig) {
     // Superclass Constructor
@@ -54,11 +42,11 @@ function HybridConnectionsWebSocketRequest(address, id, httpHeaders, serverConfi
     this.address = address;
     this.id = id;
     this.httpRequest = {
-        headers : {} 
+        headers : {}
     };
 
-    for(var keys = Object.keys(httpHeaders), l = keys.length; l; --l) {
-        this.httpRequest.headers[ keys[l-1].toLowerCase() ] = httpHeaders[ keys[l-1] ];
+    for (var keys = Object.keys(httpHeaders), l = keys.length; l; --l) {
+        this.httpRequest.headers[ keys[l - 1].toLowerCase() ] = httpHeaders[ keys[l - 1] ];
     }
 
     this.serverConfig = serverConfig;
@@ -89,7 +77,6 @@ HybridConnectionsWebSocketRequest.prototype.readHandshake = function() {
     if (!this.webSocketVersion || isNaN(this.webSocketVersion)) {
         throw new Error('Client must provide a value for Sec-WebSocket-Version.');
     }
-
 
     // Protocol is optional.
     var protocolString = request.headers['sec-websocket-protocol'];
@@ -204,7 +191,7 @@ HybridConnectionsWebSocketRequest.prototype.accept = function(acceptedProtocol, 
 
     if (protocolFullCase) {
         // validate protocol
-        for (var i=0; i < protocolFullCase.length; i++) {
+        for (var i = 0; i < protocolFullCase.length; i++) {
             var charCode = protocolFullCase.charCodeAt(i);
             var character = protocolFullCase.charAt(i);
             if (charCode < 0x21 || charCode > 0x7E || separators.indexOf(character) !== -1) {
@@ -225,20 +212,18 @@ HybridConnectionsWebSocketRequest.prototype.accept = function(acceptedProtocol, 
     // reject a second time.
     this._resolved = true;
     this.emit('requestResolved', this);
-    
 
-     var client = new WebSocketClient(
-         {tlsOptions: { rejectUnauthorized: false }});
-     client.connect(this.address, protocolFullCase);
-     client.on('connect', function(connection) {
+    var client = new WebSocketClient();
+    client.connect(this.address, protocolFullCase);
+    client.on('connect', function(connection) {
         req.emit('requestAccepted', connection);
-        if ( callback ) { 
+        if (callback) {
             callback(connection);
         }
      });
-     client.on('error', function(event){
+     client.on('error', function(event) {
          req.emit('requestRejected', event);
-        if ( callback ) {
+        if (callback) {
             callback(event);
         }
      });
@@ -246,15 +231,15 @@ HybridConnectionsWebSocketRequest.prototype.accept = function(acceptedProtocol, 
 
 HybridConnectionsWebSocketRequest.prototype.reject = function(status, reason, extraHeaders, callback) {
      var req = this;
-     var client = new WebSocketClient({tlsOptions: { rejectUnauthorized: false }});
-     var rejectUri = this.address + "&statusCode=" + status + "&statusDescription" + encodeURIComponent(reason);
-     
+     var client = new WebSocketClient();
+     var rejectUri = this.address + '&statusCode=' + status + '&statusDescription=' + encodeURIComponent(reason);
+
      client.connect(rejectUri, null, null, extraHeaders);
      // we expect this to complete with a 410 Gone
-     client.on('error', function(event){
+     client.on('error', function(event) {
          this.emit('requestRejected', event);
          callback(event);
-     });    
+     });
 };
 
 HybridConnectionsWebSocketRequest.prototype._handleSocketCloseBeforeAccept = function() {

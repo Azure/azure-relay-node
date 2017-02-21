@@ -1,4 +1,4 @@
-var noop = exports.noop = function(){};
+var noop = exports.noop = function() {};
 
 exports.extend = function extend(dest, source) {
     for (var prop in source) {
@@ -9,10 +9,6 @@ exports.extend = function extend(dest, source) {
 exports.eventEmitterListenerCount =
     require('events').EventEmitter.listenerCount ||
     function(emitter, type) { return emitter.listeners(type).length; };
-
-
-
-
 
 exports.BufferingLogger = function createBufferingLogger(identifier, uniqueID) {
     var logFunction = require('debug')(identifier);

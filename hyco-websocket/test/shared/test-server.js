@@ -4,16 +4,16 @@ var WebSocketServer = require('../../lib/HybridConnectionsWebSocketServer');
 var wsServer;
 
 function prepare(callback) {
-  if (typeof(callback) !== 'function') { callback = function(){}; }
+  if (typeof(callback) !== 'function') { callback = function() {}; }
 
   var ns = process.env.RELAY_NAMESPACE;
   var path = process.env.RELAY_PATH;
   var keyrule = process.env.RELAY_KEYRULE;
   var key = process.env.RELAY_KEY;
 
-var uri = WebSocket.createRelayListenUri(ns, path);
-    
-wsServer = new WebSocketServer({
+  var uri = WebSocket.createRelayListenUri(ns, path);
+
+  wsServer = new WebSocketServer({
     server : uri,
     token: WebSocket.createRelayToken(uri, keyrule, key),
     autoAcceptConnections: false,
@@ -23,15 +23,13 @@ wsServer = new WebSocketServer({
     keepalive: false,
     disableNagleAlgorithm: false
   });
-
-  
 }
 
 function stopServer() {
   try {
     wsServer.shutDown();
   }
-  catch(e) {
+  catch (e) {
     console.warn('stopServer threw', e);
   }
 }

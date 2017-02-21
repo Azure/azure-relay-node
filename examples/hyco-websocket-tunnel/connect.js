@@ -1,19 +1,19 @@
 var https = require('https');
 var tunnel = require('./lib/tunnel');
-var WebSocket = require('../hyco-websocket');
+var WebSocket = require('hyco-websocket');
 
 var argv = require('optimist').argv;
-if ( argv._.length < 4) {
-  console.log("connect.js [namespace] [path] [key-rule] [key]")
+if (argv._.length < 4) {
+  console.log('connect.js [namespace] [path] [key-rule] [key]')
   process.exit(1);
 }
 
 var ns = argv._[0];
 var path = argv._[1];
 var keyrule = argv._[2];
-var key = argv._[3]; 
+var key = argv._[3];
 var server = WebSocket.createRelaySendUri(ns, path);
-var token = WebSocket.createRelayToken('http://'+ns, keyrule, key);
+var token = WebSocket.createRelayToken('http://' + ns, keyrule, key);
 
 var credentials, tunnels = [];
 
