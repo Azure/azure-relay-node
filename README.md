@@ -20,6 +20,14 @@ Hybrid Connections allows establishing bi-directional, binary stream communicati
 two networked applications, whereby either or both of the parties can reside behind NATs or 
 Firewalls. Hybrid Connections is based on HTTP(S) and WebSockets.
 
+## How to provide feedback
+
+See our [Contribution Guidelines](./.github/CONTRIBUTING.md).
+
+## Samples
+
+For Relay Hybrid Connections samples, see the [azure/azure-relay](https://github.com/Azure/azure-relay/tree/master/samples/Hybrid%20Connections) service repository.
+
 ## How it works
 
 For Node, the code in the repository allows a **publicly discoverable and reachable** WebSocket 
