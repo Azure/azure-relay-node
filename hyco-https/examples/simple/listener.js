@@ -1,3 +1,5 @@
+const https = require('../../')
+
 var args = { /* defaults */
     ns : process.env.SB_HC_NAMESPACE,
     path : process.env.SB_HC_PATH,
@@ -17,26 +19,26 @@ process.argv.forEach(function(value) {
 if (args.ns == null || args.path == null || args.keyrule == null || args.key == null) {
     console.log('listener.js --ns=[namespace] --path=[path] --keyrule=[keyrule] --key=[key]');
 } else {
-
-    var https = require('../../')
     var uri = https.createRelayListenUri(args.ns, args.path);
-    var httpsServer = https.createRelayedServer(
+    var server = https.createRelayedServer(
         {
             server : uri,
-            token : ()=>https.createRelayToken(uri, args.keyrule, args.key)
+            token : () => https.createRelayToken(uri, args.keyrule, args.key)
         },
-        function(request, response) {
-            console.log('request accepted');
-            response.end('Hello Node.js Server!');
+        (req, res) => {
+            console.log('request accepted: ' + req.method + ' on ' + req.url);
+            res.setHeader('Content-Type', 'text/html');
+            res.end('<html><head><title>Hey!</title></head><body>Relayed Node.js Server!</body></html>');
         });
 
-    httpsServer.listen( (err) => {
+    server.listen( (err) => {
             if (err) {
               return console.log('something bad happened', err)
             }          
             console.log(`server is listening on ${port}`)
           });
-    httpsServer.on('error', function(err) {
-    console.log('error: ' + err);
+
+    server.on('error', (err) => {
+        console.log('error: ' + err);
     });
 }

@@ -1,8 +1,8 @@
 {
   "author": "Microsoft Corporation",
   "name": "hyco-ws",
-  "description": "",
-  "version": "1.0.6",
+  "description": "Websockets with Azure Relay Hybrid Connections",
+  "version": "1.0.7",
   "license": "MIT",
   "main": "index.js",
   "homepage": "https://docs.microsoft.com/en-us/azure/service-bus-relay/",

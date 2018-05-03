@@ -67,7 +67,7 @@ https.appendRelayToken = function appendRelayToken(uri, keyName, key, expiration
    var token = https.createRelayToken(uri, keyName, key, expirationSeconds);
 
     var parsedUrl = url.parse(uri);
-    parsedUrl.search = parsedUrl.search + '&sb-hc-token=' + encodeURIComponent(token);
+    parsedUrl.search = parsedUrl.search + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-token=' + encodeURIComponent(token);
     return url.format(parsedUrl);
 }
 
@@ -83,7 +83,7 @@ https.createRelayBaseUri = function createRelayBaseUri(serviceBusNamespace, path
 }
 
 /**
- * Create a Uri for sending to a Relay Hybrid Connection endpoint
+ * Create a Uri for requesting from a Relay Hybrid Connection endpoint
  *
  * @param {String} serviceBusNamespace The ServiceBus namespace, e.g. 'contoso.servicebus.windows.net'.
  * @param {String} path The endpoint path.
@@ -91,6 +91,27 @@ https.createRelayBaseUri = function createRelayBaseUri(serviceBusNamespace, path
  * @param {String} id Optional A Guid string for end to end correlation.
  * @api public
  */
+https.createRelayHttpsUri = function createRelayHttpsUri(serviceBusNamespace, path, token, id) {
+    var uri = 'https://' + serviceBusNamespace + '/' + path;
+    if (token != null) {
+        uri = uri + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-token=' + encodeURIComponent(token);
+    }
+    if (id != null) {
+        uri = uri + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-id=' + encodeURIComponent(id);
+    }
+    return uri;
+}
+
+/**
+ * Create a Uri for sending to a Relay Hybrid Connection Websocket endpoint
+ *
+ * @param {String} serviceBusNamespace The ServiceBus namespace, e.g. 'contoso.servicebus.windows.net'.
+ * @param {String} path The endpoint path.
+ * @param {String} token Optional SharedAccessSignature token for authenticating the sender.
+ * @param {String} id Optional A Guid string for end to end correlation.
+ * @api public
+ */
+
 https.createRelaySendUri = function createRelaySendUri(serviceBusNamespace, path, token, id) {
     var uri = https.createRelayBaseUri(serviceBusNamespace, path);
     uri = uri + (uri.indexOf('?') == -1 ? '?' : '&') + 'sb-hc-action=connect';
