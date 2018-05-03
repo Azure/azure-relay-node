@@ -122,6 +122,8 @@ If you are familiar with the regular 'https' module, you will find the code belo
 
 ``` js
 
+    const https = require('hyco-https');
+
     var args = { 
         ns : process.env.SB_HC_NAMESPACE, // fully qualified relay namespace
         path : process.env.SB_HC_PATH, // path of the Hybrid Connection
