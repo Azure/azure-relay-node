@@ -286,6 +286,7 @@ function Server(options, requestListener) {
     this.listenUri = listenUri + '&id=' + options.id;
   }
 
+  this.pendingRequest = null;
   this.closeRequested = false;
   this.options = options;
   this.path = options.path;
@@ -399,6 +400,13 @@ function connectControlChannel(server) {
   }
 
   server.controlChannel.onmessage = function(event) {
+    
+    if ( server.pendingRequest != null ) {
+      server.pendingRequest.handleBody(event.data);
+      server.pendingRequest = null;
+      return;
+    }
+
     var message = JSON.parse(event.data);
     
     if (isDefinedAndNonNull(message, 'accept')) {
@@ -565,6 +573,13 @@ function controlChannelRequest(server, message) {
   // handler to call when the connection sequence completes
   var self = server;
   
+  if ( message.request.method) {
+    req = new IncomingMessage(message, server.controlChannel);
+    if ( message.request.body == true) {
+       self.pendingRequest = req;
+    }
+  }
+  
   // execute the web socket rendezvous with the server
   try {
     var client = new WebSocket(address, {
@@ -586,14 +601,11 @@ function controlChannelRequest(server, message) {
 
       // do we have a request or is this just rendezvous?
       if ( message.request.method) {
-         var req = new IncomingMessage(message, server.controlChannel);
          var res = new ServerResponse(req);
          res.requestId = message.request.id;
          res.assignSocket(client);
          server.emit('request', req, res);
       }
-
-      
     });
 
     client.on('error', function(event) {
