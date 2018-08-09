@@ -117,7 +117,6 @@ util.inherits(ServerResponse, OutgoingMessage);
 
 ServerResponse.prototype._finish = function _finish() {
   DTRACE_HTTP_SERVER_RESPONSE(this.connection);
-  COUNTER_HTTP_SERVER_RESPONSE();
   OutgoingMessage.prototype._finish.call(this);
 };
 
@@ -611,7 +610,7 @@ function controlChannelRequest(server, message) {
 /* 
  * accept a control-channel request
  */
-function requestChannelRequest(channel, message) {
+function requestChannelRequest(server, channel, message) {
   try {
     var res = null;
     // do we have a request or is this just rendezvous?
@@ -631,7 +630,7 @@ function requestChannelListener(server, requestChannel) {
     
     if (isDefinedAndNonNull(message, 'request')) {
       // HTTP request
-      requestChannelRequest(requestChannel, message);
+      requestChannelRequest(server, requestChannel, message);
     }
   };
 }

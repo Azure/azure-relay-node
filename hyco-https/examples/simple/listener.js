@@ -26,6 +26,9 @@ if (args.ns == null || args.path == null || args.keyrule == null || args.key == 
             token : () => https.createRelayToken(uri, args.keyrule, args.key)
         },
         (req, res) => {
+            req.connection.on('message', (msg) => {
+              // consume the request body explicitly
+            });
             console.log('request accepted: ' + req.method + ' on ' + req.url);
             res.setHeader('Content-Type', 'text/html');
             res.end('<html><head><title>Hey!</title></head><body>Relayed Node.js Server!</body></html>');
