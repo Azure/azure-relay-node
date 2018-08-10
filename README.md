@@ -8,6 +8,7 @@
 |------|-------------|
 |hyco-ws|[![npm version](https://badge.fury.io/js/hyco-ws.svg)](https://badge.fury.io/js/hyco-ws)|
 |hyco-websocket|[![npm version](https://badge.fury.io/js/hyco-websocket.svg)](https://badge.fury.io/js/hyco-websocket)|
+|hyco-https|[![npm version](https://badge.fury.io/js/hyco-https.svg)](https://badge.fury.io/js/hyco-https)|
 
 This repository contains Node packages and samples for the Hybrid Connections feature of the 
 Microsoft Azure Relay, a capability pillar of the Azure Service Bus platform.
