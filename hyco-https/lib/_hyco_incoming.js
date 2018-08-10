@@ -26,7 +26,7 @@ const Stream = require('stream');
 
 /* Abstract base class for ServerRequest and ClientResponse. */
 function IncomingMessage(relayRequestMessage, relayWebSocket) {
-  
+  Stream.Readable.call(this);
   this.socket = relayWebSocket;
   this.connection = relayWebSocket;
 
@@ -56,7 +56,7 @@ function IncomingMessage(relayRequestMessage, relayWebSocket) {
   this._dumped = false;
 
   for (var header in relayRequestMessage.request.requestHeaders) { 
-     this._addHeaderLine(header, relayRequestMessage.request.requestHeaders[header], this.headers);
+         this._addHeaderLine(header, relayRequestMessage.request.requestHeaders[header], this.headers);
    }
 }
 util.inherits(IncomingMessage, Stream.Readable);
@@ -71,6 +71,12 @@ IncomingMessage.prototype.setTimeout = function setTimeout(msecs, callback) {
 
 
 IncomingMessage.prototype._read = function _read(n) {
+  
+};
+
+IncomingMessage.prototype.handleBody = function handleBody(buf) {
+  this.push(buf);
+  this.push(null);
 };
 
 
