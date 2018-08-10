@@ -60,5 +60,5 @@ test('HTTPS GET', (done) => {
         }).on('error', (e) => {
             expect(e).toBeUndefined();
         });
-    });
+    }, 5000);
 });
