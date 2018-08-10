@@ -4,6 +4,8 @@
 
 # Azure Relay Hybrid Connections Clients for Node.JS
 
+![build status](https://ci.appveyor.com/api/projects/status/github/Azure/azure-relay-node?branch=master&svg=true)
+
 |Package|Status|
 |------|-------------|
 |hyco-ws|[![npm version](https://badge.fury.io/js/hyco-ws.svg)](https://badge.fury.io/js/hyco-ws)|
