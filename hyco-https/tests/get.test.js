@@ -50,6 +50,7 @@ test('HTTPS GET', (done) => {
            expect(chunk).toBe('Hello');
         });
         res.on('end', () => {
+            server.close();
             done();
         });
     }).on('error', (e) => {
