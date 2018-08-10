@@ -117,7 +117,7 @@ util.inherits(ServerResponse, OutgoingMessage);
 
 ServerResponse.prototype._finish = function _finish() {
   DTRACE_HTTP_SERVER_RESPONSE(this.connection);
-  COUNTER_HTTP_SERVER_RESPONSE();
+  //COUNTER_HTTP_SERVER_RESPONSE();
   OutgoingMessage.prototype._finish.call(this);
 };
 
@@ -628,6 +628,9 @@ function requestChannelRequest(channel, message) {
     var res = null;
     // do we have a request or is this just rendezvous?
     var req = new IncomingMessage(message, channel);
+    if ( message.request.body == true) {
+      channel.pendingRequest = req;
+    }
     res = new ServerResponse(req);
     res.requestId = message.request.id;
     res.assignSocket(channel);
@@ -638,7 +641,15 @@ function requestChannelRequest(channel, message) {
 }
 
 function requestChannelListener(server, requestChannel) {
+  
   requestChannel.onmessage = function(event) {
+    
+    if ( requestChannel.pendingRequest != null )
+    {
+      requestChannel.pendingRequest.handleBody(event.data);
+      requestChannel.pendingRequest = null;
+      return;
+    }
     var message = JSON.parse(event.data);
     
     if (isDefinedAndNonNull(message, 'request')) {

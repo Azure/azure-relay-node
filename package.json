@@ -1,0 +1,4 @@
+{
+    "private": true,
+    "workspaces": ["hyco-https", "hyco-websocket", "hyco-ws"]
+}

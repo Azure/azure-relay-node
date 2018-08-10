@@ -9,7 +9,7 @@ module.exports = {
   // bail: false,
 
   // Respect "browser" field in package.json when resolving modules
-  // browser: false,
+  browser: false,
 
   // The directory where Jest should store its cached dependency information
   // cacheDirectory: "C:\\Users\\clemensv\\AppData\\Local\\Temp\\jest",
@@ -176,5 +176,5 @@ module.exports = {
   // watchPathIgnorePatterns: [],
 
   // Whether to use watchman for file crawling
-  // watchman: true,
+   watchman: false,
 };

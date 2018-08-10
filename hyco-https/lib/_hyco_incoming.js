@@ -56,7 +56,7 @@ function IncomingMessage(relayRequestMessage, relayWebSocket) {
   this._dumped = false;
 
   for (var header in relayRequestMessage.request.requestHeaders) { 
-     this._addHeaderLine(header, relayRequestMessage.request.requestHeaders[header], this.headers);
+         this._addHeaderLine(header, relayRequestMessage.request.requestHeaders[header], this.headers);
    }
 }
 util.inherits(IncomingMessage, Stream.Readable);
