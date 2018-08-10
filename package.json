@@ -1,4 +1,7 @@
 {
     "private": true,
-    "workspaces": ["hyco-https", "hyco-websocket", "hyco-ws"]
+    "workspaces": ["hyco-https", "hyco-websocket", "hyco-ws"],
+    "devDependencies": {
+        "jest": "^23.4.2"
+    }
 }
