@@ -1,0 +1,39 @@
+environment:
+  SB_HC_NAMESPACE:
+    secure: kHPebM+qsL3Dop5trud7EaAu2m4apSN1ydhwSZblLBwq5xCKV8fkrkW24qCtMmef
+  SB_HC_KEYRULE:
+    secure: /q6x7VmbbG2W9plFBk82xg==
+  SB_HC_KEY:
+    secure: /uJo816ZsrBGheZQ7TIzpwoNsNDxpVDxMzz+zY5gBHG/4LUELEZqv0r1I3eB2kvr
+  SB_HC_PATH:
+    secure: 6w40hsFa1GyAflELGGJaCg==
+  matrix:
+    - nodejs_version: "8"
+
+init:
+  # debugging Appveyor build. More info:
+  # https://www.appveyor.com/docs/how-to/rdp-to-build-worker/
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - git config --global core.symlinks true
+
+install:
+  - ps: Install-Product node $env:nodejs_version x64
+  - node --version
+  - yarn
+
+cache:
+  - node_modules
+  - .eslintcache
+  - "%LOCALAPPDATA%\\Yarn"
+
+test_script:
+  - yarn jest --color --runInBand
+
+# Don't actually build.
+build: off
+
+notifications:
+  - provider: Email
+    on_build_success: false
+    on_build_failure: false
+    on_build_status_changed: false
