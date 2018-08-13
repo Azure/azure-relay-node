@@ -408,7 +408,7 @@ function matchHeader(self, state, field, value) {
   switch (field) {
     case 'connection':
       state.connection = true;
-      if (RE_CONN_CLOSE.test(value))
+      if (value == 'close')
         self._last = true;
       else
         self.shouldKeepAlive = true;
