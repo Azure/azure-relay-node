@@ -68,6 +68,8 @@ function checkInvalidHeaderChar(val) {
   return headerCharRegex.test(val);
 }
 
+const RE_CONN_CLOSE = /(?:^|\W)close(?:$|\W)/i;
+
 function noopPendingOutput(amount) {}
 
 function OutgoingMessage() {
@@ -408,7 +410,7 @@ function matchHeader(self, state, field, value) {
   switch (field) {
     case 'connection':
       state.connection = true;
-      if (value == 'close')
+      if (RE_CONN_CLOSE.test(value))
         self._last = true;
       else
         self.shouldKeepAlive = true;
