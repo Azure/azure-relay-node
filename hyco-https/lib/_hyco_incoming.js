@@ -49,7 +49,6 @@ function IncomingMessage(relayRequestMessage, relayWebSocket) {
   this.url = relayRequestMessage.request.requestTarget;
   this.method = relayRequestMessage.request.method;
 
-
   this._consuming = false;
   // flag for when we decide that this message cannot possibly be
   // read by the user, so there's no point continuing to handle it.
