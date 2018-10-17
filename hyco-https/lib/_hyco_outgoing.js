@@ -68,6 +68,8 @@ function checkInvalidHeaderChar(val) {
   return headerCharRegex.test(val);
 }
 
+const RE_CONN_CLOSE = /(?:^|\W)close(?:$|\W)/i;
+
 function noopPendingOutput(amount) {}
 
 function OutgoingMessage() {

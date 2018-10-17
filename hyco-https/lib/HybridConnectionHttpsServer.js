@@ -577,6 +577,8 @@ function controlChannelRequest(server, message) {
     req = new IncomingMessage(message, server.controlChannel);
     if ( message.request.body == true) {
        self.pendingRequest = req;
+    } else {
+      req.push(null);
     }
   }
   
@@ -623,13 +625,15 @@ function controlChannelRequest(server, message) {
 /* 
  * accept a control-channel request
  */
-function requestChannelRequest(channel, message) {
+function requestChannelRequest(server, channel, message) {
   try {
     var res = null;
     // do we have a request or is this just rendezvous?
     var req = new IncomingMessage(message, channel);
     if ( message.request.body == true) {
       channel.pendingRequest = req;
+    } else {
+      req.push(null);
     }
     res = new ServerResponse(req);
     res.requestId = message.request.id;
@@ -654,7 +658,7 @@ function requestChannelListener(server, requestChannel) {
     
     if (isDefinedAndNonNull(message, 'request')) {
       // HTTP request
-      requestChannelRequest(requestChannel, message);
+      requestChannelRequest(server, requestChannel, message);
     }
   };
 }
