@@ -279,7 +279,7 @@ function _writeRaw(data, encoding, callback, fin) {
     // There might be pending data in the this.output buffer.
     if (this.output.length) {
       this._flushOutput(conn);
-    } else if (!data.length) {
+    } else if (!data.length && !fin) {
       if (typeof callback === 'function') {
         callback();
       }
@@ -388,9 +388,6 @@ function _storeHeader(statusCode, statusMessage, headers) {
   // the connection to close.
   var statusCode = this.statusCode;
     
-  //this._header = "d
-  this._headerSent = false;
-
   // wait until the first body chunk, or close(), is sent to flush,
   // UNLESS we're sending Expect: 100-continue.
   if (state.expect) this._send('');
@@ -562,10 +559,11 @@ Object.defineProperty(OutgoingMessage.prototype, 'headersSent', {
 
 const crlf_buf = Buffer.from('\r\n');
 OutgoingMessage.prototype.write = function write(chunk, encoding, callback) {
-  return write_(this, chunk, encoding, callback, true);
+  return write_(this, chunk, encoding, callback, false);
 };
 
 function write_(msg, chunk, encoding, callback, fromEnd) {
+  
   if (msg.finished) {
     const err = new ERR_STREAM_WRITE_AFTER_END();
     const triggerAsyncId = msg.socket ? msg.socket[async_id_symbol] : undefined;
@@ -646,10 +644,14 @@ OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
         this._contentLength = chunk.length;
     }
     write_(this, chunk, encoding, null, true);
-  } else if (!this._header) {
-    this._contentLength = 0;
-    this._implicitHeader();
-  }
+  } else {
+    if (!this._header) {
+      this._contentLength = 0;
+      this._implicitHeader();
+    }
+    // force the FIN frame
+    this._send('', null, null, true);
+}
 
   if (typeof callback === 'function')
     this.once('finish', callback);
