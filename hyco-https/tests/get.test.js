@@ -4,7 +4,7 @@ jest.setTimeout(30000); // 30 seconds
 
 test('HTTPS GET', (done) => {
     var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
-    var path = "a1";
+    var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH : "a2";
     var keyrule = process.env.SB_HC_KEYRULE ? process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1') : null;
     var key = process.env.SB_HC_KEY ? process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1') : null;
 
