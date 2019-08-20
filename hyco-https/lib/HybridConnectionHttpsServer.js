@@ -258,18 +258,19 @@ function Server(options, requestListener) {
     return new Server(options, requestListener);
   }
   
-    if (typeof options === 'function') {
-      requestListener = options;
-      options = {};
-    } else if (options == null || typeof options === 'object') {
-      options = util._extend({}, options);
-    }
-  
-    options = Object.assign({
-      server: null,
-      token: null,
-      id: null,
-    }, options);
+  if (typeof options === 'function') {
+    requestListener = options;
+    options = {};
+  } else if (options == null || typeof options === 'object') {
+    options = util._extend({}, options);
+  }
+
+  options = Object.assign({
+    server: null,
+    token: null,
+    id: null,
+    keepAliveTimeout: null
+  }, options);
 
   if (!isDefinedAndNonNull(options, 'server')) {
     throw new TypeError('\'server\' must be provided');
@@ -296,9 +297,7 @@ function Server(options, requestListener) {
     this.on('request', requestListener);
   }
   this.timeout = 2 * 60 * 1000;
-  this.keepAliveTimeout = 5000;
   this.on('requestchannel', function(channel) { requestChannelListener(self, channel) });
-
 }
 
 /**
@@ -376,9 +375,12 @@ function connectControlChannel(server) {
   // This represents the token renew timer/interval, keep a reference in order to cancel it.
   var tokenRenewTimer = null;
 
+  // KeepAlive interval to detect half-open connections
+  var keepAliveTimer = null;
+
   server.controlChannel.onerror = function(event) {
     server.emit('error', event);
-    clearInterval(tokenRenewTimer);
+    clearIntervals();
     if (!server.closeRequested) {
       connectControlChannel(server);
     }
@@ -386,10 +388,29 @@ function connectControlChannel(server) {
 
   server.controlChannel.onopen = function(event) {
     server.emit('listening');
+
+    var keepAliveInterval = null;
+    try {
+      keepAliveInterval = server.options.keepAliveTimeout.asMilliseconds();
+    } catch (ex) {
+      console.log("keepAliveTimeout should be an instance of moment.duration");
+    }
+    if (keepAliveInterval) {
+      keepAliveTimer = setInterval(function() {
+        try {
+          server.controlChannel.pong();
+        } catch (e) {
+          if (!server.closeRequested) {
+            // Closed unexpectedly, should reconnect
+            connectControlChannel(server);
+          }
+        }
+      }, keepAliveInterval);
+    }
   }
 
   server.controlChannel.onclose = function(event) {
-    clearInterval(tokenRenewTimer);
+    clearIntervals();
 
     if (!server.closeRequested) {
       // reconnect
@@ -435,6 +456,11 @@ function connectControlChannel(server) {
       }
     },
     tokenRenewDuration.asMilliseconds());
+  }
+
+  var clearIntervals = function() {
+    clearInterval(tokenRenewTimer);
+    clearInterval(keepAliveTimer);
   }
 }
 
