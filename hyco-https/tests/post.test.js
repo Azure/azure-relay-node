@@ -1,6 +1,6 @@
 var https = require('..')
 
-var totalRequests = 100; // Total requests to send over the test
+var totalRequests = 10; // Total requests to send over the test
 jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
 
 test('HTTP POST', (done) => {
