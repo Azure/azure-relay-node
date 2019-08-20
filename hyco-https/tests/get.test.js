@@ -1,6 +1,7 @@
 var https = require('..')
 
-jest.setTimeout(30000); // 30 seconds
+var totalRequests = 100; // Total requests to send over the test
+jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
 
 test('HTTPS GET', (done) => {
     var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
@@ -13,6 +14,9 @@ test('HTTPS GET', (done) => {
     expect(keyrule).toBeDefined();
     expect(key).toBeDefined();
 
+    var listenerCount = 0;
+    var senderCount = 0;
+
     /* set up the listener */
     var uri = https.createRelayListenUri(ns, path);
     var server = https.createRelayedServer({
@@ -23,6 +27,7 @@ test('HTTPS GET', (done) => {
             expect(req.method).toBe('GET');
             expect(req.headers.custom).toBe('Hello');
             res.end('Hello');
+            listenerCount++;
         });
 
     // fail we get an error
@@ -34,11 +39,11 @@ test('HTTPS GET', (done) => {
         expect(err).toBeUndefined();
     });
 
-    // client is being run with 5 second delay to allow the server to settle
-    setTimeout(() => {
-        /* set up the client */
-        var clientUri = https.createRelayHttpsUri(ns, path);
-        var token = https.createRelayToken(clientUri, keyrule, key);
+    /* set up the client */
+    var clientUri = https.createRelayHttpsUri(ns, path);
+    var token = https.createRelayToken(clientUri, keyrule, key);
+
+    for (var i = 0; i < totalRequests; i++) {
         https.get({
             hostname: ns,
             path: ((!path || path.length == 0 || path[0] !== '/') ? '/' : '') + path,
@@ -54,11 +59,14 @@ test('HTTPS GET', (done) => {
                 expect(chunk).toBe('Hello');
             });
             res.on('end', () => {
-                server.close();
-                done();
+                senderCount++;
+                if (listenerCount == totalRequests && senderCount == totalRequests) {
+                    server.close();
+                    done();
+                }
             });
         }).on('error', (e) => {
             expect(e).toBeUndefined();
         });
-    }, 5000);
+    }
 });

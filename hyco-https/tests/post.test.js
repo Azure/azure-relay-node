@@ -1,18 +1,22 @@
 var https = require('..')
 
-jest.setTimeout(30000); // 30 seconds
+var totalRequests = 100; // Total requests to send over the test
+jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
 
 test('HTTP POST', (done) => {
-    var ns = process.env.SB_HC_NAMESPACE?process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1'):null;
+    var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
     var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH : "a2";
-    var keyrule = process.env.SB_HC_KEYRULE?process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1'):null;
-    var key = process.env.SB_HC_KEY?process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1'):null;
+    var keyrule = process.env.SB_HC_KEYRULE ? process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1') : null;
+    var key = process.env.SB_HC_KEY ? process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1') : null;
 
     expect(ns).toBeDefined();
     expect(path).toBeDefined();
     expect(keyrule).toBeDefined();
     expect(key).toBeDefined();
-    
+
+    var listenerCount = 0;
+    var senderCount = 0;
+
     /* set up the listener */
     var uri = https.createRelayListenUri(ns, path);
     var server = https.createRelayedServer({
@@ -28,6 +32,7 @@ test('HTTP POST', (done) => {
             });
             req.on('end', () => {
                 res.end('Hello');
+                listenerCount++;
             });
         });
 
@@ -40,13 +45,12 @@ test('HTTP POST', (done) => {
         expect(err).toBeUndefined();
     });
     
-    // client is being run with 5 second delay to allow the server to settle
-    setTimeout(()=>{
-        /* set up the client */
-        var clientUri = https.createRelayHttpsUri(ns, path);
-        var token = https.createRelayToken(clientUri, keyrule, key);
-        
-        const postData = 'Hello';
+    /* set up the client */
+    var clientUri = https.createRelayHttpsUri(ns, path);
+    var token = https.createRelayToken(clientUri, keyrule, key);
+    
+    const postData = 'Hello';
+    for (var i = 0; i < totalRequests; i++) {
         var req = https.request({
             hostname: ns,
             path: ((!path || path.length == 0 || path[0] !== '/') ? '/' : '') + path,
@@ -62,11 +66,14 @@ test('HTTP POST', (done) => {
             expect(res.statusCode).toBe(200);
             res.setEncoding('utf8');
             res.on('data', (chunk) => {
-                expect(chunk).toBe('Hello');
+                expect(chunk).toBe(postData);
             });
             res.on('end', () => {
-                server.close();
-                done();
+                senderCount++;
+                if (listenerCount == totalRequests && senderCount == totalRequests) {
+                    server.close();
+                    done();
+                }
             });
         }).on('error', (e) => {
             expect(e).toBeUndefined();
@@ -74,5 +81,5 @@ test('HTTP POST', (done) => {
 
         req.write(postData);
         req.end();
-    }, 5000);
+    }
 });
