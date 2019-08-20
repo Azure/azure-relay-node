@@ -148,9 +148,12 @@ function onServerResponseClose() {
 }
 
 ServerResponse.prototype.assignSocket = function assignSocket(webSocket) {
-  assert(!webSocket._httpMessage);
-  webSocket._httpMessage = this;
-  webSocket.on('close', onServerResponseClose);
+  // (!webSocket._httpMessage) implies that it's a rendezvous connection
+  // We don't want to close the websocket if it's the control channel we are sending over
+  if (!webSocket._httpMessage) {
+    webSocket._httpMessage = this;
+    webSocket.on('close', onServerResponseClose);
+  }
   this.socket = webSocket;
   this.connection = webSocket;
   this.emit('socket', webSocket);
@@ -594,52 +597,60 @@ function controlChannelRequest(server, message) {
   // handler to call when the connection sequence completes
   var self = server;
   
-  if ( message.request.method) {
+  if (message.request.method) {
+    // we received a GET request or a small POST http request
+    // the response should be sent over the control channel
     req = new IncomingMessage(message, server.controlChannel);
     if ( message.request.body == true) {
        self.pendingRequest = req;
     } else {
       req.push(null);
     }
-  }
-  
-  // execute the web socket rendezvous with the server
-  try {
-    var client = new WebSocket(address, {
-      headers: headers,
-      perMessageDeflate: false
-    });
-    client.on('open', function() {
-      
-      server.emit('requestchannel', client);
-      if (self.options.clientTracking) {
-        self.clients.push(client);
-        ws.on('close', function() {
-          var index = self.clients.indexOf(client);
-          if (index != -1) {
-            self.clients.splice(index, 1);
-          }
-        });
-      }
 
-      // do we have a request or is this just rendezvous?
-      if ( message.request.method) {
-         var res = new ServerResponse(req);
-         res.requestId = message.request.id;
-         res.assignSocket(client);
-         server.emit('request', req, res);
-      }
-    });
+    var res = new ServerResponse(req);
+    res.requestId = message.request.id;
+    res.assignSocket(server.controlChannel);
+    server.emit('request', req, res);
+  } else {
+    // we received a chunked request or a large (>64kb) request
+    // execute the web socket rendezvous with the server
+    try {
+      var client = new WebSocket(address, {
+        headers: headers,
+        perMessageDeflate: false
+      });
+      client.on('open', function() {
+        
+        server.emit('requestchannel', client);
+        if (self.options.clientTracking) {
+          self.clients.push(client);
+          ws.on('close', function() {
+            var index = self.clients.indexOf(client);
+            if (index != -1) {
+              self.clients.splice(index, 1);
+            }
+          });
+        }
 
-    client.on('error', function(event) {
-      var index = server.clients.indexOf(client);
-      if (index != -1) {
-        server.clients.splice(index, 1);
-      }
-    });
+        // do we have a request or is this just rendezvous?
+        // if ( message.request.method) {
+        //   var res = new ServerResponse(req);
+        //   res.requestId = message.request.id;
+        //   res.assignSocket(client);
+        //   server.emit('request', req, res);
+        // }
+      });
 
-  } catch (err) {
-    console.log(err);
+      client.on('error', function(event) {
+        var index = server.clients.indexOf(client);
+        if (index != -1) {
+          server.clients.splice(index, 1);
+        }
+      });
+
+    } catch (err) {
+      console.log(err);
+    }
   }
 }
 
@@ -684,7 +695,6 @@ function requestChannelListener(server, requestChannel) {
   };
 }
 
-
 function abortConnection(message, status, reason) {
 
   var client = new WebSocketClient();
@@ -696,6 +706,4 @@ function abortConnection(message, status, reason) {
   });
 }
 
-
-
-module.exports = { Server, ServerResponse }
+module.exports = { Server, ServerResponse };
