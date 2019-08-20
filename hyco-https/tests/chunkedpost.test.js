@@ -1,18 +1,22 @@
 var https = require('..')
 
-jest.setTimeout(30000); // 30 seconds
+var totalRequests = 10; // Total requests to send over the test
+jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
 
 test('Chunked HTTP POST', (done) => {
-    var ns = process.env.SB_HC_NAMESPACE?process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1'):null;
-    var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH:"a2";
-    var keyrule = process.env.SB_HC_KEYRULE?process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1'):null;
-    var key = process.env.SB_HC_KEY?process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1'):null;
+    var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
+    var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH : "a2";
+    var keyrule = process.env.SB_HC_KEYRULE ? process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1') : null;
+    var key = process.env.SB_HC_KEY ? process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1') : null;
 
     expect(ns).toBeDefined();
     expect(path).toBeDefined();
     expect(keyrule).toBeDefined();
     expect(key).toBeDefined();
     
+    var listenerCount = 0;
+    var senderCount = 0;
+
     /* set up the listener */
     var uri = https.createRelayListenUri(ns, path);
     var server = https.createRelayedServer({
@@ -33,6 +37,7 @@ test('Chunked HTTP POST', (done) => {
                 res.write('1234567890');
                 res.write('Hello');
                 res.end();
+                listenerCount++;
             });
         });
 
@@ -45,12 +50,11 @@ test('Chunked HTTP POST', (done) => {
         expect(err).toBeUndefined();
     });
     
-    // client is being run with 5 second delay to allow the server to settle
-    setTimeout(()=>{
-        /* set up the client */
-        var clientUri = https.createRelayHttpsUri(ns, path);
-        var token = https.createRelayToken(clientUri, keyrule, key);
-        
+    /* set up the client */
+    var clientUri = https.createRelayHttpsUri(ns, path);
+    var token = https.createRelayToken(clientUri, keyrule, key);
+
+    for (var i = 0; i < totalRequests; i++) {
         var req = https.request({
             hostname: ns,
             path: ((!path || path.length == 0 || path[0] !== '/') ? '/' : '') + path,
@@ -71,8 +75,11 @@ test('Chunked HTTP POST', (done) => {
             });
             res.on('end', () => {
                 expect(chunks).toBe('12345678901234567890Hello');
-                server.close();
-                done();
+                senderCount++;
+                if (listenerCount == totalRequests && senderCount == totalRequests) {
+                    server.close();
+                    done();
+                }
             });
         }).on('error', (e) => {
             expect(e).toBeUndefined();
@@ -82,5 +89,5 @@ test('Chunked HTTP POST', (done) => {
         req.write('1234567890');
         req.write('Hello');
         req.end();
-    }, 5000);
+    }
 });
