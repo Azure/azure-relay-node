@@ -398,7 +398,9 @@ function connectControlChannel(server) {
 
     var keepAliveInterval = null;
     try {
-      keepAliveInterval = server.options.keepAliveTimeout.asMilliseconds();
+      if (server.options.keepAliveTimeout) {
+        keepAliveInterval = server.options.keepAliveTimeout.asMilliseconds();
+      }
     } catch (ex) {
       console.log("keepAliveTimeout should be an instance of moment.duration");
     }
@@ -597,7 +599,7 @@ function controlChannelRequest(server, message) {
   // handler to call when the connection sequence completes
   var self = server;
   
-  if (message.request.method) {
+  if (message.request.method === "GET" || message.request.body) {
     // we received a GET request or a small POST http request
     // the response should be sent over the control channel
     req = new IncomingMessage(message, server.controlChannel);
@@ -631,14 +633,6 @@ function controlChannelRequest(server, message) {
             }
           });
         }
-
-        // do we have a request or is this just rendezvous?
-        // if ( message.request.method) {
-        //   var res = new ServerResponse(req);
-        //   res.requestId = message.request.id;
-        //   res.assignSocket(client);
-        //   server.emit('request', req, res);
-        // }
       });
 
       client.on('error', function(event) {
