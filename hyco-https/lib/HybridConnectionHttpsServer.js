@@ -353,7 +353,6 @@ Server.prototype.close = function(callback) {
  * create the control channel connection 
  */
 function connectControlChannel(server) {
-  
   var opt = null;
   var token = null;
   var tokenRenewDuration = null;
@@ -378,6 +377,11 @@ function connectControlChannel(server) {
   // KeepAlive interval to detect half-open connections
   var keepAliveTimer = null;
 
+  var clearIntervals = function() {
+    clearInterval(tokenRenewTimer);
+    clearInterval(keepAliveTimer);
+  }
+
   server.controlChannel.onerror = function(event) {
     server.emit('error', event);
     clearIntervals();
@@ -400,10 +404,7 @@ function connectControlChannel(server) {
         try {
           server.controlChannel.pong();
         } catch (e) {
-          if (!server.closeRequested) {
-            // Closed unexpectedly, should reconnect
-            connectControlChannel(server);
-          }
+          server.controlChannel.onclose();
         }
       }, keepAliveInterval);
     }
@@ -456,11 +457,6 @@ function connectControlChannel(server) {
       }
     },
     tokenRenewDuration.asMilliseconds());
-  }
-
-  var clearIntervals = function() {
-    clearInterval(tokenRenewTimer);
-    clearInterval(keepAliveTimer);
   }
 }
 
@@ -586,7 +582,6 @@ function acceptExtensions(offer) {
   }
   return extensions;
 }
-
 
 /* 
  * accept a control-channel request
