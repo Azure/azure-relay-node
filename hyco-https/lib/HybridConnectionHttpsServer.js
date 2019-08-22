@@ -280,6 +280,7 @@ Server.prototype.setTimeout = function setTimeout(msecs, callback) {
  */
 Server.prototype.listen = function () {
   // connect the control channel to stary listening
+  this._reconnectDelayIndex = -1;
   connectControlChannel(this);
 }
 
@@ -317,6 +318,9 @@ function connectControlChannel(server) {
   var opt = null;
   var token = null;
   var tokenRenewDuration = null;
+  var reconnectDelays = [1, 2, 5, 10, 30]; // in seconds
+
+  server._connecting = true;
   if (typeof server.options.token === 'function') {
     // server.options.token is a function, call it periodically to renew the token
     tokenRenewDuration = new moment.duration(1, 'hours');
@@ -343,15 +347,30 @@ function connectControlChannel(server) {
     clearInterval(keepAliveTimer);
   }
 
+  var reconnect = function(server) {
+    // Try connecting again if not already
+    if (!server._connecting) {
+      server._connecting = true;
+      if (server._reconnectDelayIndex < reconnectDelays.length - 1) {
+        server._reconnectDelayIndex++;
+      }
+      setTimeout(() => {
+        connectControlChannel(server);
+      }, reconnectDelays[server._reconnectDelayIndex] * 1000);
+    }
+  }
+
   server.controlChannel.onerror = function(event) {
     server.emit('error', event);
     clearIntervals();
     if (!server.closeRequested) {
-      connectControlChannel(server);
+      reconnect(server);
     }
   }
 
   server.controlChannel.onopen = function(event) {
+    server._connecting = false;
+    server._reconnectDelayIndex = -1;
     server.emit('listening');
 
     var keepAliveInterval = null;
@@ -374,11 +393,12 @@ function connectControlChannel(server) {
   }
 
   server.controlChannel.onclose = function(event) {
+    // If reconnect fails, onclose will be triggered
+    server._connecting = false;
     clearIntervals();
 
     if (!server.closeRequested) {
-      // reconnect
-      connectControlChannel(server);
+      reconnect(server);
     } else {
       server.emit('close', server);
     }
