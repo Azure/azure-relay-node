@@ -125,45 +125,6 @@ ServerResponse.prototype._finish = function _finish() {
 ServerResponse.prototype.statusCode = 200;
 ServerResponse.prototype.statusMessage = undefined;
 
-function onServerResponseClose() {
-  // EventEmitter.emit makes a copy of the 'close' listeners array before
-  // calling the listeners. detachSocket() unregisters onServerResponseClose
-  // but if detachSocket() is called, directly or indirectly, by a 'close'
-  // listener, onServerResponseClose is still in that copy of the listeners
-  // array. That is, in the example below, b still gets called even though
-  // it's been removed by a:
-  //
-  //   var EventEmitter = require('events');
-  //   var obj = new EventEmitter();
-  //   obj.on('event', a);
-  //   obj.on('event', b);
-  //   function a() { obj.removeListener('event', b) }
-  //   function b() { throw "BAM!" }
-  //   obj.emit('event');  // throws
-  //
-  // Ergo, we need to deal with stale 'close' events and handle the case
-  // where the ServerResponse object has already been deconstructed.
-  // Fortunately, that requires only a single if check. :-)
-  if (this._httpMessage) this._httpMessage.emit('close');
-}
-
-ServerResponse.prototype.assignSocket = function assignSocket(webSocket) {
-  assert(!webSocket._httpMessage);
-  webSocket._httpMessage = this;
-  webSocket.on('close', onServerResponseClose);
-  this.socket = webSocket;
-  this.connection = webSocket;
-  this.emit('socket', webSocket);
-  this._flush();
-};
-
-ServerResponse.prototype.detachSocket = function detachSocket(webSocket) {
-  assert(socket._httpMessage === this);
-  socket.removeListener('close', onServerResponseClose);
-  socket._httpMessage = null;
-  this.socket = this.connection = null;
-};
-
 ServerResponse.prototype.writeContinue = function writeContinue(cb) {
   // foo
   this._sent100 = true;
@@ -395,7 +356,9 @@ function connectControlChannel(server) {
 
     var keepAliveInterval = null;
     try {
-      keepAliveInterval = server.options.keepAliveTimeout.asMilliseconds();
+      if (server.options.keepAliveTimeout) {
+        keepAliveInterval = server.options.keepAliveTimeout.asMilliseconds();
+      }
     } catch (ex) {
       console.log("keepAliveTimeout should be an instance of moment.duration");
     }
@@ -589,57 +552,56 @@ function acceptExtensions(offer) {
 function controlChannelRequest(server, message) {
   var address = message.request.address;
   var req = { headers: {} };
-  var headers = [];
 
   // handler to call when the connection sequence completes
   var self = server;
   
-  if ( message.request.method) {
+  if (message.request.method) {
+    // we received a GET request or a small POST http request
+    // the response should be sent over the control channel
     req = new IncomingMessage(message, server.controlChannel);
     if ( message.request.body == true) {
        self.pendingRequest = req;
     } else {
       req.push(null);
     }
-  }
-  
-  // execute the web socket rendezvous with the server
-  try {
-    var client = new WebSocket(address, {
-      headers: headers,
-      perMessageDeflate: false
-    });
-    client.on('open', function() {
-      
-      server.emit('requestchannel', client);
-      if (self.options.clientTracking) {
-        self.clients.push(client);
-        ws.on('close', function() {
-          var index = self.clients.indexOf(client);
-          if (index != -1) {
-            self.clients.splice(index, 1);
-          }
-        });
-      }
 
-      // do we have a request or is this just rendezvous?
-      if ( message.request.method) {
-         var res = new ServerResponse(req);
-         res.requestId = message.request.id;
-         res.assignSocket(client);
-         server.emit('request', req, res);
-      }
-    });
+    var res = new ServerResponse(req);
+    res.requestId = message.request.id;
+    res._controlChannel = server.controlChannel;
+    res._rendezvousAddress = address;
+    server.emit('request', req, res);
+  } else {
+    // we received a chunked request or a large (>64kb) request
+    // execute the web socket rendezvous with the server
+    try {
+      var client = new WebSocket(address, {
+        perMessageDeflate: false
+      });
+      client.on('open', function() {
+        
+        server.emit('requestchannel', client);
+        if (self.options.clientTracking) {
+          self.clients.push(client);
+          ws.on('close', function() {
+            var index = self.clients.indexOf(client);
+            if (index != -1) {
+              self.clients.splice(index, 1);
+            }
+          });
+        }
+      });
 
-    client.on('error', function(event) {
-      var index = server.clients.indexOf(client);
-      if (index != -1) {
-        server.clients.splice(index, 1);
-      }
-    });
+      client.on('error', function(event) {
+        var index = server.clients.indexOf(client);
+        if (index != -1) {
+          server.clients.splice(index, 1);
+        }
+      });
 
-  } catch (err) {
-    console.log(err);
+    } catch (err) {
+      console.log(err);
+    }
   }
 }
 
@@ -656,9 +618,11 @@ function requestChannelRequest(server, channel, message) {
     } else {
       req.push(null);
     }
+
     res = new ServerResponse(req);
     res.requestId = message.request.id;
-    res.assignSocket(channel);
+    res._rendezvousChannel = channel;
+    res.assignSocket();
     server.emit('request', req, res);
   } catch (err) {
     console.log(err);
@@ -684,7 +648,6 @@ function requestChannelListener(server, requestChannel) {
   };
 }
 
-
 function abortConnection(message, status, reason) {
 
   var client = new WebSocketClient();
@@ -696,6 +659,4 @@ function abortConnection(message, status, reason) {
   });
 }
 
-
-
-module.exports = { Server, ServerResponse }
+module.exports = { Server, ServerResponse };

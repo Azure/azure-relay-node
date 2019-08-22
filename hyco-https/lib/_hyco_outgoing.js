@@ -39,6 +39,7 @@ const {
   ERR_STREAM_WRITE_AFTER_END
 } = require('./_hyco_errors').codes;
 const outHeadersKey = 'outHeadersKey';
+const maxControlChannelMessageSize = 64 * 1024;
 
 // isCookieField performs a case-insensitive comparison of a provided string
 // against the word "cookie." As of V8 6.6 this is faster than handrolling or
@@ -619,6 +620,58 @@ function onFinish(outmsg) {
   outmsg.emit('finish');
 }
 
+function onServerResponseClose() {
+  // EventEmitter.emit makes a copy of the 'close' listeners array before
+  // calling the listeners. detachSocket() unregisters onServerResponseClose
+  // but if detachSocket() is called, directly or indirectly, by a 'close'
+  // listener, onServerResponseClose is still in that copy of the listeners
+  // array. That is, in the example below, b still gets called even though
+  // it's been removed by a:
+  //
+  //   var EventEmitter = require('events');
+  //   var obj = new EventEmitter();
+  //   obj.on('event', a);
+  //   obj.on('event', b);
+  //   function a() { obj.removeListener('event', b) }
+  //   function b() { throw "BAM!" }
+  //   obj.emit('event');  // throws
+  //
+  // Ergo, we need to deal with stale 'close' events and handle the case
+  // where the ServerResponse object has already been deconstructed.
+  // Fortunately, that requires only a single if check. :-)
+  if (this._httpMessage) this._httpMessage.emit('close');
+}
+
+OutgoingMessage.prototype.assignSocket = function assignSocket() {
+  var webSocket = null;
+  if (this._rendezvousChannel) {
+    // A rendezvous socket has been assigned
+    webSocket = this._rendezvousChannel;
+    webSocket._httpMessage = this;
+    webSocket.on('close', onServerResponseClose);
+  } else {
+    // No socket assigned yet, check the message size to decide between the control channel or a new rendezvous
+    if (this._contentLength <= maxControlChannelMessageSize) {
+      webSocket = this._controlChannel;
+    } else {
+      webSocket = new WS(this._rendezvousAddress, {
+        perMessageDeflate: false
+      });
+    }
+  }
+  this.socket = webSocket;
+  this.connection = webSocket;
+  this.emit('socket', webSocket);
+  this._flush();
+};
+
+OutgoingMessage.prototype.detachSocket = function detachSocket(webSocket) {
+  assert(socket._httpMessage === this);
+  socket.removeListener('close', onServerResponseClose);
+  socket._httpMessage = null;
+  this.socket = this.connection = null;
+};
+
 OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
   if (typeof chunk === 'function') {
     callback = chunk;
@@ -638,20 +691,22 @@ OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
       throw new ERR_INVALID_ARG_TYPE('chunk', ['string', 'Buffer'], chunk);
     }
     if (!this._header) {
-      if (typeof chunk === 'string')
-        this._contentLength = Buffer.byteLength(chunk, encoding);
-      else
-        this._contentLength = chunk.length;
+      var length = (typeof chunk === 'string') ? Buffer.byteLength(chunk, encoding) : chunk.length;
+      if (length <= maxControlChannelMessageSize) {
+        this._contentLength = length;
+      }
     }
+    this.assignSocket();
     write_(this, chunk, encoding, null, true);
   } else {
     if (!this._header) {
       this._contentLength = 0;
       this._implicitHeader();
     }
+    this.assignSocket();
     // force the FIN frame
     this._send('', null, null, true);
-}
+  }
 
   if (typeof callback === 'function')
     this.once('finish', callback);
