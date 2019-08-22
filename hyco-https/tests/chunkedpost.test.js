@@ -104,6 +104,10 @@ function sendAndReceive(requestMsg, responseMsg, done) {
     }
 }
 
+test('HttpChunkedPostEmptyReqEmptyRes', (done) => {
+    sendAndReceive("", "", done);
+})
+
 test('HttpChunkedPostSmallReqSmallRes', (done) => {
     sendAndReceive("Hello", "Goodbye", done);
 });

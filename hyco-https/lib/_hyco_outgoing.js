@@ -692,8 +692,9 @@ OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
     }
     if (!this._header) {
       var length = (typeof chunk === 'string') ? Buffer.byteLength(chunk, encoding) : chunk.length;
-      if (length <= maxControlChannelMessageSize) 
+      if (length <= maxControlChannelMessageSize) {
         this._contentLength = length;
+      }
     }
     this.assignSocket();
     write_(this, chunk, encoding, null, true);
@@ -702,6 +703,7 @@ OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
       this._contentLength = 0;
       this._implicitHeader();
     }
+    this.assignSocket();
     // force the FIN frame
     this._send('', null, null, true);
   }

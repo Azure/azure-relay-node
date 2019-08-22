@@ -93,6 +93,10 @@ function sendAndReceive(requestMsg, responseMsg, done) {
     }
 }
 
+test('HttpEmptyPostReqEmptyRes', (done) => {
+    sendAndReceive("", "", done);
+})
+
 test('HttpPostSmallReqSmallRes', (done) => {
     sendAndReceive("Hello", "Goodbye", done);
 });
