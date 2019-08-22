@@ -125,48 +125,6 @@ ServerResponse.prototype._finish = function _finish() {
 ServerResponse.prototype.statusCode = 200;
 ServerResponse.prototype.statusMessage = undefined;
 
-function onServerResponseClose() {
-  // EventEmitter.emit makes a copy of the 'close' listeners array before
-  // calling the listeners. detachSocket() unregisters onServerResponseClose
-  // but if detachSocket() is called, directly or indirectly, by a 'close'
-  // listener, onServerResponseClose is still in that copy of the listeners
-  // array. That is, in the example below, b still gets called even though
-  // it's been removed by a:
-  //
-  //   var EventEmitter = require('events');
-  //   var obj = new EventEmitter();
-  //   obj.on('event', a);
-  //   obj.on('event', b);
-  //   function a() { obj.removeListener('event', b) }
-  //   function b() { throw "BAM!" }
-  //   obj.emit('event');  // throws
-  //
-  // Ergo, we need to deal with stale 'close' events and handle the case
-  // where the ServerResponse object has already been deconstructed.
-  // Fortunately, that requires only a single if check. :-)
-  if (this._httpMessage) this._httpMessage.emit('close');
-}
-
-ServerResponse.prototype.assignSocket = function assignSocket(webSocket) {
-  // (!webSocket._httpMessage) implies that it's a rendezvous connection
-  // We don't want to close the websocket if it's the control channel we are sending over
-  if (!webSocket._httpMessage) {
-    webSocket._httpMessage = this;
-    webSocket.on('close', onServerResponseClose);
-  }
-  this.socket = webSocket;
-  this.connection = webSocket;
-  this.emit('socket', webSocket);
-  this._flush();
-};
-
-ServerResponse.prototype.detachSocket = function detachSocket(webSocket) {
-  assert(socket._httpMessage === this);
-  socket.removeListener('close', onServerResponseClose);
-  socket._httpMessage = null;
-  this.socket = this.connection = null;
-};
-
 ServerResponse.prototype.writeContinue = function writeContinue(cb) {
   // foo
   this._sent100 = true;
@@ -594,12 +552,11 @@ function acceptExtensions(offer) {
 function controlChannelRequest(server, message) {
   var address = message.request.address;
   var req = { headers: {} };
-  var headers = [];
 
   // handler to call when the connection sequence completes
   var self = server;
   
-  if (message.request.method === "GET" || message.request.body) {
+  if (message.request.method) {
     // we received a GET request or a small POST http request
     // the response should be sent over the control channel
     req = new IncomingMessage(message, server.controlChannel);
@@ -611,14 +568,14 @@ function controlChannelRequest(server, message) {
 
     var res = new ServerResponse(req);
     res.requestId = message.request.id;
-    res.assignSocket(server.controlChannel);
+    res._controlChannel = server.controlChannel;
+    res._rendezvousAddress = address;
     server.emit('request', req, res);
   } else {
     // we received a chunked request or a large (>64kb) request
     // execute the web socket rendezvous with the server
     try {
       var client = new WebSocket(address, {
-        headers: headers,
         perMessageDeflate: false
       });
       client.on('open', function() {
@@ -661,9 +618,11 @@ function requestChannelRequest(server, channel, message) {
     } else {
       req.push(null);
     }
+
     res = new ServerResponse(req);
     res.requestId = message.request.id;
-    res.assignSocket(channel);
+    res._rendezvousChannel = channel;
+    res.assignSocket();
     server.emit('request', req, res);
   } catch (err) {
     console.log(err);

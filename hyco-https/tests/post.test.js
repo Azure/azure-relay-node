@@ -1,18 +1,24 @@
 var https = require('..')
 
-var totalRequests = 10; // Total requests to send over the test
-jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
+var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
+var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH : "a2";
+var keyrule = process.env.SB_HC_KEYRULE ? process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1') : null;
+var key = process.env.SB_HC_KEY ? process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1') : null;
 
-test('HTTP POST', (done) => {
-    var ns = process.env.SB_HC_NAMESPACE ? process.env.SB_HC_NAMESPACE.replace(/^"(.*)"$/, '$1') : null;
-    var path = process.env.SB_HC_PATH ? process.env.SB_HC_PATH : "a2";
-    var keyrule = process.env.SB_HC_KEYRULE ? process.env.SB_HC_KEYRULE.replace(/^"(.*)"$/, '$1') : null;
-    var key = process.env.SB_HC_KEY ? process.env.SB_HC_KEY.replace(/^"(.*)"$/, '$1') : null;
+expect(ns).toBeDefined();
+expect(path).toBeDefined();
+expect(keyrule).toBeDefined();
+expect(key).toBeDefined();
 
-    expect(ns).toBeDefined();
-    expect(path).toBeDefined();
-    expect(keyrule).toBeDefined();
-    expect(key).toBeDefined();
+// create a large message over 64kb to force a rendezvous connection
+var largeMessage = "";
+for (var i = 1024 * 64; i >= 0; i--) {
+    largeMessage += String.fromCharCode(i % 128);
+}
+
+function sendAndReceive(requestMsg, responseMsg, done) {
+    var totalRequests = 10; // Total requests to send over the test
+    jest.setTimeout(5000 + (totalRequests * 200)); // Expect 5 seconds + 5 requests per second
 
     var listenerCount = 0;
     var senderCount = 0;
@@ -28,10 +34,10 @@ test('HTTP POST', (done) => {
             expect(req.headers.custom).toBe("Hello");
             req.setEncoding('utf-8');
             req.on('data', (chunk) => {
-                expect(chunk).toBe('Hello');
+                expect(chunk).toBe(requestMsg);
             });
             req.on('end', () => {
-                res.end('Hello');
+                res.end(responseMsg);
                 listenerCount++;
             });
         });
@@ -49,7 +55,6 @@ test('HTTP POST', (done) => {
     var clientUri = https.createRelayHttpsUri(ns, path);
     var token = https.createRelayToken(clientUri, keyrule, key);
     
-    const postData = 'Hello';
     for (var i = 0; i < totalRequests; i++) {
         var req = https.request({
             hostname: ns,
@@ -60,18 +65,22 @@ test('HTTP POST', (done) => {
                 'ServiceBusAuthorization': token,
                 'Custom' : 'Hello',
                 'Content-Type': 'text/plain',
-                'Content-Length': Buffer.byteLength(postData)
+                'Content-Length': Buffer.byteLength(requestMsg)
             }
         }, (res) => {
+            var chunks = '';
             expect(res.statusCode).toBe(200);
             res.setEncoding('utf8');
             res.on('data', (chunk) => {
-                expect(chunk).toBe(postData);
+                chunks += chunk;
             });
             res.on('end', () => {
+                expect(chunks.length).toBe(responseMsg.length);
+                expect(chunks).toBe(responseMsg);
                 senderCount++;
                 if (listenerCount == totalRequests && senderCount == totalRequests) {
                     server.close();
+                    jest.clearAllTimers();
                     done();
                 }
             });
@@ -79,7 +88,23 @@ test('HTTP POST', (done) => {
             expect(e).toBeUndefined();
         });
 
-        req.write(postData);
+        req.write(requestMsg);
         req.end();
     }
+}
+
+test('HttpPostSmallReqSmallRes', (done) => {
+    sendAndReceive("Hello", "Goodbye", done);
+});
+
+test('HttpPostSmallReqLargeRes', (done) => {
+    sendAndReceive("Hello", largeMessage, done);
+});
+
+test('HttpPostLargeReqSmallRes', (done) => {
+    sendAndReceive(largeMessage, "Goodbye", done);
+});
+
+test('HttpPostLargeReqLargeRes', (done) => {
+    sendAndReceive(largeMessage, largeMessage, done);
 });
