@@ -318,7 +318,7 @@ function connectControlChannel(server) {
   var opt = null;
   var token = null;
   var tokenRenewDuration = null;
-  var reconnectDelays = [1, 2, 5, 10, 30]; // in seconds
+  var reconnectDelays = [0, 1, 2, 5, 10, 30]; // in seconds
 
   server._connecting = true;
   if (typeof server.options.token === 'function') {
