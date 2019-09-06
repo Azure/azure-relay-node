@@ -643,6 +643,10 @@ function onServerResponseClose() {
 }
 
 OutgoingMessage.prototype.assignSocket = function assignSocket() {
+  if (this.socket && this.connection) {
+    return;
+  }
+
   var webSocket = null;
   if (this._rendezvousChannel) {
     // A rendezvous socket has been assigned
@@ -780,7 +784,9 @@ OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
   var output = this.output;
   var outputCallbacks = this.outputCallbacks;
   for (var i = 0; i < outputLength; i++) {
-    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin : false}, outputCallbacks[i]);
+    // Response sent through the control connection must have its own frame
+    var isHeaderThroughControlConnection = this._controlChannel && i === 0;
+    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isHeaderThroughControlConnection }, outputCallbacks[i]);
   }
   
   this.output = [];
