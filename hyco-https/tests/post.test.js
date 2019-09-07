@@ -181,14 +181,18 @@ describe('HttpPostRequestTests', () => {
 });
 
 describe('HttpPostResponseTests', () => {
-    Object.keys(testMessages).forEach((testName) => {
-        test('HttpPostResponseEndOnly' + testName, (done) => {
-            sendAndReceive(null, "RequestMessage", null, testMessages[testName], done);
+    describe('EndOnly', () => {
+        Object.keys(testMessages).forEach((testName) => {
+            test('HttpPostResponseEndOnly' + testName, (done) => {
+                sendAndReceive(null, "RequestMessage", null, testMessages[testName], done);
+            });
         });
     });
-    Object.keys(testMessages).forEach((testName) => {
-        test('HttpPostResponseWriteOnly' + testName, (done) => {
-            sendAndReceive("RequestMessage", null, testMessages[testName], null, done);
+    describe('WriteOnly', () => {
+        Object.keys(testMessages).forEach((testName) => {
+            test('HttpPostResponseWriteOnly' + testName, (done) => {
+                sendAndReceive("RequestMessage", null, testMessages[testName], null, done);
+            });
         });
     });
     describe('WriteAndEnd', () => {

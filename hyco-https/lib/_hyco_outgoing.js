@@ -255,7 +255,7 @@ function _writeResponsePreamble(callback) {
   this.output.push(data);
   this.outputFrameBinary.push(false);
   this.outputCallbacks.push(callback);
-  this.outputSize += Buffer.byteLength(data, encoding);
+  this.outputSize += Buffer.byteLength(data);
   this._onPendingData(data.length);
 
   if (shouldCreateRendezvous(this.outputSize)) {
@@ -657,6 +657,7 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
     return;
   }
 
+  var thisPtr = this;
   var webSocket = null;
   if (this._rendezvousChannel) {
     // A rendezvous socket has been assigned
@@ -668,6 +669,9 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
     if (shouldCreateRendezvous(this.outputSize)) {
       webSocket = new WS(this._rendezvousAddress, {
         perMessageDeflate: false
+      });
+      webSocket.on('open', function() {
+        thisPtr._flushOutput(webSocket);
       });
     } else {
       webSocket = this._controlChannel;
@@ -788,9 +792,9 @@ OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
   var output = this.output;
   var outputCallbacks = this.outputCallbacks;
   for (var i = 0; i < outputLength; i++) {
-    // Response JSON must be sent as an independent frame
-    var isResponseJSON = i === 0;
-    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isResponseJSON }, outputCallbacks[i]);
+    // set fin = true if it's a response JSON or the last fragment after the response ended
+    var isFin = (i === 0 || (i === outputLength - 1 && this.finished));
+    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isFin }, outputCallbacks[i]);
   }
   
   this.output = [];
