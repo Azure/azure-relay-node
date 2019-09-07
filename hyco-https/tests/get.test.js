@@ -43,30 +43,32 @@ test('HTTPS GET', (done) => {
     var clientUri = https.createRelayHttpsUri(ns, path);
     var token = https.createRelayToken(clientUri, keyrule, key);
 
-    for (var i = 0; i < totalRequests; i++) {
-        https.get({
-            hostname: ns,
-            path: ((!path || path.length == 0 || path[0] !== '/') ? '/' : '') + path,
-            port: 443,
-            headers: {
-                'ServiceBusAuthorization': token,
-                'Custom': 'Hello'
-            }
-        }, (res) => {
-            expect(res.statusCode).toBe(200);
-            res.setEncoding('utf8');
-            res.on('data', (chunk) => {
-                expect(chunk).toBe('Hello');
-            });
-            res.on('end', () => {
-                senderCount++;
-                if (listenerCount == totalRequests && senderCount == totalRequests) {
-                    server.close();
-                    done();
+    server.on('listening', () => {
+        for (var i = 0; i < totalRequests; i++) {
+            https.get({
+                hostname: ns,
+                path: ((!path || path.length == 0 || path[0] !== '/') ? '/' : '') + path,
+                port: 443,
+                headers: {
+                    'ServiceBusAuthorization': token,
+                    'Custom': 'Hello'
                 }
+            }, (res) => {
+                expect(res.statusCode).toBe(200);
+                res.setEncoding('utf8');
+                res.on('data', (chunk) => {
+                    expect(chunk).toBe('Hello');
+                });
+                res.on('end', () => {
+                    senderCount++;
+                    if (listenerCount == totalRequests && senderCount == totalRequests) {
+                        server.close();
+                        done();
+                    }
+                });
+            }).on('error', (e) => {
+                expect(e).toBeUndefined();
             });
-        }).on('error', (e) => {
-            expect(e).toBeUndefined();
-        });
-    }
+        }
+    });
 });
