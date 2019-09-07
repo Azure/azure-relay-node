@@ -642,7 +642,7 @@ function requestChannelRequest(server, channel, message) {
     res = new ServerResponse(req);
     res.requestId = message.request.id;
     res._rendezvousChannel = channel;
-    res.assignSocket();
+    res._assignSocket();
     server.emit('request', req, res);
   } catch (err) {
     console.log(err);

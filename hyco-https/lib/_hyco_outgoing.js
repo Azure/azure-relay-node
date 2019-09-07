@@ -168,8 +168,6 @@ Object.defineProperty(OutgoingMessage.prototype, '_headerNames', {
   }
 });
 
-
-
 OutgoingMessage.prototype.setTimeout = function setTimeout(msecs, callback) {
 
   if (callback) {
@@ -257,8 +255,12 @@ function _writeResponsePreamble(callback) {
   this.output.push(data);
   this.outputFrameBinary.push(false);
   this.outputCallbacks.push(callback);
-  this.outputSize += data.length;
+  this.outputSize += Buffer.byteLength(data, encoding);
   this._onPendingData(data.length);
+
+  if (shouldCreateRendezvous(this.outputSize)) {
+    this._assignSocket();
+  }
   return false;
 }
 
@@ -297,8 +299,12 @@ function _writeRaw(data, encoding, callback, fin) {
   this.output.push(data);
   this.outputFrameBinary.push(true);
   this.outputCallbacks.push(callback);
-  this.outputSize += data.length;
+  this.outputSize += Buffer.byteLength(data, encoding);
   this._onPendingData(data.length);
+
+  if (shouldCreateRendezvous(this.outputSize)) {
+    this._assignSocket();
+  }
   return false;
 }
 
@@ -620,6 +626,10 @@ function onFinish(outmsg) {
   outmsg.emit('finish');
 }
 
+function shouldCreateRendezvous(messageSize) {
+  return messageSize > maxControlChannelMessageSize;
+}
+
 function onServerResponseClose() {
   // EventEmitter.emit makes a copy of the 'close' listeners array before
   // calling the listeners. detachSocket() unregisters onServerResponseClose
@@ -642,7 +652,7 @@ function onServerResponseClose() {
   if (this._httpMessage) this._httpMessage.emit('close');
 }
 
-OutgoingMessage.prototype.assignSocket = function assignSocket() {
+OutgoingMessage.prototype._assignSocket = function _assignSocket() {
   if (this.socket && this.connection) {
     return;
   }
@@ -655,12 +665,12 @@ OutgoingMessage.prototype.assignSocket = function assignSocket() {
     webSocket.on('close', onServerResponseClose);
   } else {
     // No socket assigned yet, check the message size to decide between the control channel or a new rendezvous
-    if (this._contentLength <= maxControlChannelMessageSize) {
-      webSocket = this._controlChannel;
-    } else {
+    if (shouldCreateRendezvous(this.outputSize)) {
       webSocket = new WS(this._rendezvousAddress, {
         perMessageDeflate: false
       });
+    } else {
+      webSocket = this._controlChannel;
     }
   }
   this.socket = webSocket;
@@ -669,7 +679,7 @@ OutgoingMessage.prototype.assignSocket = function assignSocket() {
   this._flush();
 };
 
-OutgoingMessage.prototype.detachSocket = function detachSocket(webSocket) {
+OutgoingMessage.prototype._detachSocket = function _detachSocket(webSocket) {
   assert(socket._httpMessage === this);
   socket.removeListener('close', onServerResponseClose);
   socket._httpMessage = null;
@@ -694,20 +704,14 @@ OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
     if (typeof chunk !== 'string' && !(chunk instanceof Buffer)) {
       throw new ERR_INVALID_ARG_TYPE('chunk', ['string', 'Buffer'], chunk);
     }
-    if (!this._header) {
-      var length = (typeof chunk === 'string') ? Buffer.byteLength(chunk, encoding) : chunk.length;
-      if (length <= maxControlChannelMessageSize) {
-        this._contentLength = length;
-      }
-    }
-    this.assignSocket();
+    this.outputSize += Buffer.byteLength(chunk, encoding);
+    this._assignSocket();
     write_(this, chunk, encoding, null, true);
   } else {
     if (!this._header) {
-      this._contentLength = 0;
       this._implicitHeader();
     }
-    this.assignSocket();
+    this._assignSocket();
     // force the FIN frame
     this._send('', null, null, true);
   }
@@ -784,9 +788,9 @@ OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
   var output = this.output;
   var outputCallbacks = this.outputCallbacks;
   for (var i = 0; i < outputLength; i++) {
-    // Response sent through the control connection must have its own frame
-    var isHeaderThroughControlConnection = this._controlChannel && i === 0;
-    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isHeaderThroughControlConnection }, outputCallbacks[i]);
+    // Response JSON must be sent as an independent frame
+    var isResponseJSON = i === 0;
+    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isResponseJSON }, outputCallbacks[i]);
   }
   
   this.output = [];
