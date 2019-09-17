@@ -2,7 +2,7 @@
   "author": "Microsoft Corporation",
   "name": "hyco-https",
   "description": "HTTP with Azure Relay Hybrid Connections",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "license": "MIT",
   "main": "index.js",
   "homepage": "https://docs.microsoft.com/en-us/azure/service-bus-relay/",
