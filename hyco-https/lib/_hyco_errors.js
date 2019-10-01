@@ -39,14 +39,6 @@ const { defineProperty } = Object;
 var util;
 var buffer;
 
-var internalUtil = null;
-function lazyInternalUtil() {
-  if (!internalUtil) {
-    internalUtil = require('internal/util');
-  }
-  return internalUtil;
-}
-
 function copyError(source) {
   const keys = Object.keys(source);
   const target = Object.create(Object.getPrototypeOf(source));
@@ -627,41 +619,6 @@ function exceptionWithHostPort(err, syscall, address, port, additional) {
   return ex;
 }
 
-/**
- * @param {number|string} code - A libuv error number or a c-ares error code
- * @param {string} syscall
- * @param {string} [hostname]
- * @returns {Error}
- */
-function dnsException(code, syscall, hostname) {
-  // If `code` is of type number, it is a libuv error number, else it is a
-  // c-ares error code.
-  if (typeof code === 'number') {
-    // FIXME(bnoordhuis) Remove this backwards compatibility nonsense and pass
-    // the true error to the user. ENOTFOUND is not even a proper POSIX error!
-    if (code === UV_EAI_MEMORY ||
-        code === UV_EAI_NODATA ||
-        code === UV_EAI_NONAME) {
-      code = 'ENOTFOUND'; // Fabricated error name.
-    } else {
-      code = lazyInternalUtil().getSystemErrorName(code);
-    }
-  }
-  const message = `${syscall} ${code}${hostname ? ` ${hostname}` : ''}`;
-  // eslint-disable-next-line no-restricted-syntax
-  const ex = new Error(message);
-  // TODO(joyeecheung): errno is supposed to be a number / err, like in
-  // uvException.
-  ex.errno = code;
-  ex.code = code;
-  ex.syscall = syscall;
-  if (hostname) {
-    ex.hostname = hostname;
-  }
-  Error.captureStackTrace(ex, dnsException);
-  return ex;
-}
-
 let maxStack_ErrorName;
 let maxStack_ErrorMessage;
 /**
@@ -688,7 +645,6 @@ function isStackOverflowError(err) {
 }
 
 module.exports = {
-  dnsException,
   errnoException,
   exceptionWithHostPort,
   uvException,
