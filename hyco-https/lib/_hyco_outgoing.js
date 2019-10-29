@@ -674,9 +674,6 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
 
   var thisPtr = this;
   var webSocket = null;
-  // this._shouldForceRendezvous = false;
-  // clearInterval(this._forceRendezvousTimer);
-  // this._forceRendezvousTimer = null;
   if (this._rendezvousChannel) {
     // A rendezvous socket has been assigned
     webSocket = this._rendezvousChannel;
@@ -684,7 +681,7 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
     webSocket.on('close', onServerResponseClose);
   } else {
     // No socket assigned yet, check the message size to decide between the control channel or a new rendezvous
-    if (isBufferSizeExceeded(this.outputSize) || this._shouldForceRendezvous) {
+    if (isBufferSizeExceeded(this.outputSize)) {
       webSocket = new WS(this._rendezvousAddress, {
         perMessageDeflate: false
       });

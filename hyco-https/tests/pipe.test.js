@@ -13,7 +13,7 @@ expect(key).toBeDefined();
 
 var smallMessage = "SmallMessage";
 var kb = "";
-for (var i = 1024; i >= 0; i--) {
+for (var i = 1024; i > 0; i--) {
     kb += String.fromCharCode(i % 128);
 }
 // let stream push 1kb at a time
@@ -22,7 +22,7 @@ for (var j = 64; j >= 0; j--) {
     over64kbMessage.push(kb);
 }
 
-jest.setTimeout(3000);
+jest.setTimeout(10000);
 
 function streamResponse(preStreamMessage, streamMessage, postStreamMessage, done) {
     var responseExpected = "";
