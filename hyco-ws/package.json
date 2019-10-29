@@ -20,7 +20,7 @@
     "url" : "https://github.com/Azure/azure-relay-node.git"
   },
   "dependencies": {
-    "ws": "1.1.x",
+    "ws": "7.2.x",
     "crypto": "latest",
     "moment": "latest",
     "util" : "latest",
