@@ -258,8 +258,9 @@ function _writeResponsePreamble(callback) {
   this.outputSize += Buffer.byteLength(data);
   this._onPendingData(data.length);
 
-  if (shouldCreateRendezvous(this.outputSize)) {
+  if (isBufferSizeExceeded(this.outputSize)) {
     this._assignSocket();
+    return true;
   }
   return false;
 }
@@ -293,8 +294,9 @@ function _writeRaw(data, encoding, callback, fin) {
       if ( error ) {
         console.log(error);
       }
-    } );
+    });
   }
+
   // Buffer, as long as we're not destroyed.
   this.output.push(data);
   this.outputFrameBinary.push(true);
@@ -302,12 +304,13 @@ function _writeRaw(data, encoding, callback, fin) {
   this.outputSize += Buffer.byteLength(data, encoding);
   this._onPendingData(data.length);
 
-  if (shouldCreateRendezvous(this.outputSize)) {
+  if (isBufferSizeExceeded(this.outputSize)) {
     this._assignSocket();
+    return true;
   }
+
   return false;
 }
-
 
 OutgoingMessage.prototype._storeHeader = _storeHeader;
 function _storeHeader(statusCode, statusMessage, headers) {
@@ -570,7 +573,6 @@ OutgoingMessage.prototype.write = function write(chunk, encoding, callback) {
 };
 
 function write_(msg, chunk, encoding, callback, fromEnd) {
-  
   if (msg.finished) {
     const err = new ERR_STREAM_WRITE_AFTER_END();
     const triggerAsyncId = msg.socket ? msg.socket[async_id_symbol] : undefined;
@@ -604,9 +606,22 @@ function write_(msg, chunk, encoding, callback, fromEnd) {
   // signal the user to keep writing.
   if (chunk.length === 0) return true;
 
+
+  // When a input stream pipes to our OutgoingMessage, pipe will call this write function
+  // Returning false will cause the input stream to pause until the 'drain' event is emitted
+  // Therefore we must emit the 'drain' event AFTER this write function returns, which is why this Promise is used.
+  var writeResolve;
+  var writePromise = new Promise(function(resolve, reject) {
+    writeResolve = resolve;
+  });
+  writePromise.then(function(value) {
+    msg.emit('drain'); // Signal stream to keep writing
+  });
+
   var ret = msg._send(chunk, encoding, callback, fromEnd);
   
   debug('write ret = ' + ret);
+  writeResolve(ret);
   return ret;
 }
 
@@ -626,7 +641,7 @@ function onFinish(outmsg) {
   outmsg.emit('finish');
 }
 
-function shouldCreateRendezvous(messageSize) {
+function isBufferSizeExceeded(messageSize) {
   return messageSize > maxControlChannelMessageSize;
 }
 
@@ -666,12 +681,12 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
     webSocket.on('close', onServerResponseClose);
   } else {
     // No socket assigned yet, check the message size to decide between the control channel or a new rendezvous
-    if (shouldCreateRendezvous(this.outputSize)) {
+    if (isBufferSizeExceeded(this.outputSize)) {
       webSocket = new WS(this._rendezvousAddress, {
         perMessageDeflate: false
       });
       webSocket.on('open', function() {
-        thisPtr._flushOutput(webSocket);
+        thisPtr._flush();
       });
     } else {
       webSocket = this._controlChannel;
@@ -769,7 +784,7 @@ OutgoingMessage.prototype._flush = function _flush() {
   var socket = this.socket;
   var ret;
 
-  if (socket && socket.writable) {
+  if (socket && socket.readyState === socket.OPEN) {
     // There might be remaining data in this.output; write it out
     ret = this._flushOutput(socket);
 
@@ -784,17 +799,16 @@ OutgoingMessage.prototype._flush = function _flush() {
 };
 
 OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
-  var ret;
   var outputLength = this.output.length;
   if (outputLength <= 0)
-    return ret;
+    return false;
 
   var output = this.output;
   var outputCallbacks = this.outputCallbacks;
   for (var i = 0; i < outputLength; i++) {
     // set fin = true if it's a response JSON or the last fragment after the response ended
     var isFin = (i === 0 || (i === outputLength - 1 && this.finished));
-    ret = socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isFin }, outputCallbacks[i]);
+    socket.send(output[i], { binary: this.outputFrameBinary[i], fin: isFin }, outputCallbacks[i]);
   }
   
   this.output = [];
@@ -802,7 +816,7 @@ OutgoingMessage.prototype._flushOutput = function _flushOutput(socket) {
   this._onPendingData(-this.outputSize);
   this.outputSize = 0;
 
-  return ret;
+  return true;
 };
 
 
