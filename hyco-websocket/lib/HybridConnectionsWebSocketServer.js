@@ -257,6 +257,7 @@ function connectControlChannel(server) {
 
     client.on('connectFailed', function(event) {
         console.log(event);
+        server.emit('error', event);
     });
 
     if (tokenRenewDuration) {
