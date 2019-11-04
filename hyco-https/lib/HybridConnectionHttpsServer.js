@@ -116,8 +116,6 @@ function ServerResponse(req) {
 util.inherits(ServerResponse, OutgoingMessage);
 
 ServerResponse.prototype._finish = function _finish() {
-  DTRACE_HTTP_SERVER_RESPONSE && DTRACE_HTTP_SERVER_RESPONSE(this.connection);
-  //COUNTER_HTTP_SERVER_RESPONSE();
   OutgoingMessage.prototype._finish.call(this);
 };
 
