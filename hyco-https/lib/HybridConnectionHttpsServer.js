@@ -359,7 +359,10 @@ function connectControlChannel(server) {
   }
 
   server.controlChannel.onerror = function(event) {
-    server.emit('error', event);
+    if (server._events != null && server._events.error != null) {
+      server.emit('error', event);
+    }
+    
     clearIntervals();
     if (!server.closeRequested) {
       reconnect(server);
