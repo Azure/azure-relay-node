@@ -653,6 +653,8 @@ function requestChannelListener(server, requestChannel) {
     
     if ( requestChannel.pendingRequest != null )
     {
+      requestChannel.pendingRequest.handleBody = IncomingMessage.prototype.handleBody;
+      requestChannel.pendingRequest.destroy = IncomingMessage.prototype.destroy;
       requestChannel.pendingRequest.handleBody(event.data);
       requestChannel.pendingRequest = null;
       return;
