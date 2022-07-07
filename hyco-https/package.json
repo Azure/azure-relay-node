@@ -17,7 +17,7 @@
     "crypto": "latest",
     "events": "latest",
     "https": "latest",
-    "moment": "^2.22.2",
+    "moment": "^2.29.4",
     "util": "latest",
     "ws": "^6.0.0"
   },
