@@ -2,7 +2,7 @@
   <img src="relay.png" alt="Microsoft Azure Relay" width="100"/>
 </p>
 
-# Azure Relay Hybrid Connections Clients for Node.JS
+# Azure Relay Hybrid Connections Clients for Node.js
 
 ![build status](https://ci.appveyor.com/api/projects/status/github/Azure/azure-relay-node?branch=master&svg=true)
 
