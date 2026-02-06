@@ -94,4 +94,59 @@ describe('hyco-websocket parameter validation', () => {
       expect(se).toBeLessThan(before);
     });
   });
+
+  describe('URI creation functions with null/empty namespace or path', () => {
+
+    test('createRelayBaseUri() handles null namespace gracefully', () => {
+      const uri = WS.createRelayBaseUri(null, 'mypath');
+      expect(typeof uri).toBe('string');
+      expect(uri).toBe('wss://null:443/$hc/mypath');
+    });
+
+    test('createRelayBaseUri() handles empty namespace gracefully', () => {
+      const uri = WS.createRelayBaseUri('', 'mypath');
+      expect(typeof uri).toBe('string');
+      expect(uri).toBe('wss://:443/$hc/mypath');
+    });
+
+    test('createRelayBaseUri() handles null path gracefully', () => {
+      const uri = WS.createRelayBaseUri('contoso.servicebus.windows.net', null);
+      expect(typeof uri).toBe('string');
+      expect(uri).toBe('wss://contoso.servicebus.windows.net:443/$hc/null');
+    });
+
+    test('createRelayBaseUri() handles empty path gracefully', () => {
+      const uri = WS.createRelayBaseUri('contoso.servicebus.windows.net', '');
+      expect(typeof uri).toBe('string');
+      expect(uri).toBe('wss://contoso.servicebus.windows.net:443/$hc/');
+    });
+
+    test('createRelayListenUri() handles null namespace gracefully', () => {
+      const uri = WS.createRelayListenUri(null, 'mypath');
+      expect(typeof uri).toBe('string');
+      expect(uri).toContain('wss://null:443/$hc/mypath');
+      expect(uri).toContain('sb-hc-action=listen');
+    });
+
+    test('createRelayListenUri() handles empty path gracefully', () => {
+      const uri = WS.createRelayListenUri('contoso.servicebus.windows.net', '');
+      expect(typeof uri).toBe('string');
+      expect(uri).toContain('wss://contoso.servicebus.windows.net:443/$hc/');
+      expect(uri).toContain('sb-hc-action=listen');
+    });
+
+    test('createRelaySendUri() handles null namespace gracefully', () => {
+      const uri = WS.createRelaySendUri(null, 'mypath');
+      expect(typeof uri).toBe('string');
+      expect(uri).toContain('wss://null:443/$hc/mypath');
+      expect(uri).toContain('sb-hc-action=connect');
+    });
+
+    test('createRelaySendUri() handles empty path gracefully', () => {
+      const uri = WS.createRelaySendUri('contoso.servicebus.windows.net', '');
+      expect(typeof uri).toBe('string');
+      expect(uri).toContain('wss://contoso.servicebus.windows.net:443/$hc/');
+      expect(uri).toContain('sb-hc-action=connect');
+    });
+  });
 });
