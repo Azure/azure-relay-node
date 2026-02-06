@@ -591,7 +591,19 @@ function controlChannelRequest(server, message) {
     res.requestId = message.request.id;
     res._controlChannel = server.controlChannel;
     res._rendezvousAddress = address;
-    server.emit('request', req, res);
+    try {
+      server.emit('request', req, res);
+    } catch (err) {
+      // Request handler threw — return 500 without leaking exception details
+      if (!res.headersSent && !res.finished) {
+        try {
+          res.writeHead(500);
+          res.end();
+        } catch (writeErr) {
+          // ignore write errors during error recovery
+        }
+      }
+    }
   } else {
     // we received a chunked request or a large (>64kb) request
     // execute the web socket rendezvous with the server
@@ -646,7 +658,15 @@ function requestChannelRequest(server, channel, message) {
     res._assignSocket();
     server.emit('request', req, res);
   } catch (err) {
-    console.log(err);
+    // Request handler threw — return 500 without leaking exception details
+    if (res && !res.headersSent && !res.finished) {
+      try {
+        res.writeHead(500);
+        res.end();
+      } catch (writeErr) {
+        // ignore write errors during error recovery
+      }
+    }
   }
 }
 
