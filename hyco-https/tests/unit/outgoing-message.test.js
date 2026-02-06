@@ -214,4 +214,67 @@ describe('hyco-https ServerResponse', () => {
       expect(res.hasHeader('X-Remove')).toBe(false);
     });
   });
+
+  describe('getHeaders() and getHeaderNames()', () => {
+    test('getHeaders() returns all set headers keyed by lowercase name', () => {
+      const res = createResponse();
+      res.setHeader('X-One', 'value1');
+      res.setHeader('X-Two', 'value2');
+      const headers = res.getHeaders();
+      expect(headers['x-one']).toBe('value1');
+      expect(headers['x-two']).toBe('value2');
+    });
+
+    test('getHeaders() returns empty object when no headers are set', () => {
+      const res = createResponse();
+      const headers = res.getHeaders();
+      expect(Object.keys(headers).length).toBe(0);
+    });
+
+    test('getHeaders() returns a copy (modifying result does not affect response)', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'original');
+      const headers = res.getHeaders();
+      headers['x-test'] = 'modified';
+      expect(res.getHeader('X-Test')).toBe('original');
+    });
+
+    test('getHeaders() includes array-valued headers', () => {
+      const res = createResponse();
+      res.setHeader('Set-Cookie', ['a=1', 'b=2']);
+      const headers = res.getHeaders();
+      expect(headers['set-cookie']).toEqual(['a=1', 'b=2']);
+    });
+
+    test('getHeaderNames() returns lowercase header names', () => {
+      const res = createResponse();
+      res.setHeader('X-Mixed-Case', 'value1');
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-ALL-UPPER', 'value2');
+      const names = res.getHeaderNames();
+      expect(names).toContain('x-mixed-case');
+      expect(names).toContain('content-type');
+      expect(names).toContain('x-all-upper');
+      // Ensure no original-case names leak through
+      expect(names).not.toContain('X-Mixed-Case');
+      expect(names).not.toContain('Content-Type');
+      expect(names).not.toContain('X-ALL-UPPER');
+    });
+
+    test('getHeaderNames() returns empty array when no headers are set', () => {
+      const res = createResponse();
+      const names = res.getHeaderNames();
+      expect(names).toEqual([]);
+    });
+
+    test('getHeaderNames() reflects headers added and removed', () => {
+      const res = createResponse();
+      res.setHeader('X-Keep', 'keep');
+      res.setHeader('X-Remove', 'remove');
+      res.removeHeader('X-Remove');
+      const names = res.getHeaderNames();
+      expect(names).toContain('x-keep');
+      expect(names).not.toContain('x-remove');
+    });
+  });
 });
