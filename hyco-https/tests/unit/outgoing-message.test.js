@@ -97,5 +97,35 @@ describe('hyco-https ServerResponse', () => {
       expect(res.getHeader('X-Existing')).toBe('existing-value');
       expect(res.getHeader('X-New')).toBe('new-value');
     });
+
+    test('writeHead() throws ERR_HTTP_INVALID_STATUS_CODE for status code 0', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(0)).toThrow(RangeError);
+    });
+
+    test('writeHead() throws ERR_HTTP_INVALID_STATUS_CODE for status code 99', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(99)).toThrow(RangeError);
+    });
+
+    test('writeHead() throws ERR_HTTP_INVALID_STATUS_CODE for status code 1000', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(1000)).toThrow(RangeError);
+    });
+
+    test('writeHead() throws ERR_HTTP_INVALID_STATUS_CODE for negative status code', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(-1)).toThrow(RangeError);
+    });
+
+    test('writeHead() does not throw for boundary status code 100', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(100)).not.toThrow();
+    });
+
+    test('writeHead() does not throw for boundary status code 999', () => {
+      const res = createResponse();
+      expect(() => res.writeHead(999)).not.toThrow();
+    });
   });
 });
