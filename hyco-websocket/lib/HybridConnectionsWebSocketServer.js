@@ -227,14 +227,14 @@ function connectControlChannel(server) {
         server.controlChannel.on('error', function(event) {
             server.emit('error', event);
             clearInterval(tokenRenewTimer);
-            if (!closeRequested) {
+            if (!server.closeRequested) {
                 connectControlChannel(server);
             }
         });
 
         server.controlChannel.on('close', function(event) {
             clearInterval(tokenRenewTimer);
-            if (!closeRequested) {
+            if (!server.closeRequested) {
                 // reconnect
                 connectControlChannel(server);
             } else {
