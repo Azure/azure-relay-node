@@ -1,7 +1,7 @@
 /**
  * Parameter validation unit tests for hyco-ws module.
- * Verifies that createRelayToken() and createRelayedServer() throw or handle
- * gracefully when called with invalid inputs.
+ * Verifies that createRelayToken(), createRelayedServer(), and relayedConnect()
+ * throw or handle gracefully when called with invalid inputs.
  */
 'use strict';
 
@@ -182,6 +182,28 @@ describe('hyco-ws parameter validation', () => {
           token: () => 'dynamic-token'
         });
       }).not.toThrow();
+    });
+  });
+
+  describe('relayedConnect() with null/empty address', () => {
+
+    test('handles null address gracefully (ws accepts null)', () => {
+      // The underlying ws library accepts null without throwing
+      expect(() => {
+        WS.relayedConnect(null, null);
+      }).not.toThrow();
+    });
+
+    test('throws when address is empty string', () => {
+      expect(() => {
+        WS.relayedConnect('', null);
+      }).toThrow();
+    });
+
+    test('throws when address is undefined', () => {
+      expect(() => {
+        WS.relayedConnect(undefined, null);
+      }).toThrow();
     });
   });
 });
