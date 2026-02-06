@@ -502,4 +502,17 @@ describe('hyco-https ServerResponse', () => {
       expect(() => res.end(12345)).toThrow(/chunk/);
     });
   });
+
+  describe('pipe()', () => {
+    test('pipe() emits an error event (disabled operation)', (done) => {
+      const res = createResponse();
+      res.on('error', (err) => {
+        expect(err).toBeInstanceOf(Error);
+        expect(err.message).toMatch(/Cannot pipe/);
+        expect(err.code).toBe('ERR_STREAM_CANNOT_PIPE');
+        done();
+      });
+      res.pipe(process.stdout);
+    });
+  });
 });
