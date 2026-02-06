@@ -59,6 +59,7 @@ function HybridConnectionsWebSocketServer(options, callback) {
   this.options = options;
   this.path = options.path;
   this.clients = [];
+  this._reconnectDelayIndex = -1;
 
   connectControlChannel(this);
 }
@@ -95,12 +96,17 @@ HybridConnectionsWebSocketServer.prototype.close = function(callback) {
   }
 }
 
+var reconnectDelays = [0, 1, 2, 5, 10, 30]; // in seconds
+
 function connectControlChannel(server) {
   /* create the control connection */
 
   var opt = null;
   var token = null;
   var tokenRenewDuration = null;
+
+  server._connecting = true;
+
   if (typeof server.options.token === 'function') {
     // server.options.token is a function, call it periodically to renew the token
     tokenRenewDuration = new moment.duration(1, 'hours');
@@ -119,24 +125,38 @@ function connectControlChannel(server) {
   // This represents the token renew timer/interval, keep a reference in order to cancel it.
   var tokenRenewTimer = null;
 
+  var reconnect = function(server) {
+    if (!server._connecting) {
+      server._connecting = true;
+      if (server._reconnectDelayIndex < reconnectDelays.length - 1) {
+        server._reconnectDelayIndex++;
+      }
+      setTimeout(function() {
+        connectControlChannel(server);
+      }, reconnectDelays[server._reconnectDelayIndex] * 1000);
+    }
+  }
+
   server.controlChannel.onerror = function(event) {
     server.emit('error', event);
     clearInterval(tokenRenewTimer);
     if (!server.closeRequested) {
-      connectControlChannel(server);
+      reconnect(server);
     }
   }
 
   server.controlChannel.onopen = function(event) {
+    server._connecting = false;
+    server._reconnectDelayIndex = -1;
     server.emit('listening');
   }
 
   server.controlChannel.onclose = function(event) {
+    server._connecting = false;
     clearInterval(tokenRenewTimer);
 
     if (!server.closeRequested) {
-      // reconnect
-      connectControlChannel(server);
+      reconnect(server);
     } else {
       server.emit('close', server);
     }
@@ -301,3 +321,4 @@ function abortConnection(message, status, reason) {
 }
 
 module.exports = HybridConnectionsWebSocketServer;
+module.exports.reconnectDelays = reconnectDelays;
