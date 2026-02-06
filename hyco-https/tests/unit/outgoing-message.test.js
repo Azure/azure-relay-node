@@ -515,4 +515,111 @@ describe('hyco-https ServerResponse', () => {
       res.pipe(process.stdout);
     });
   });
+
+  describe('setTimeout()', () => {
+    test('setTimeout() returns this for chaining', () => {
+      const res = createResponse();
+      const ret = res.setTimeout(1000);
+      expect(ret).toBe(res);
+    });
+
+    test('setTimeout() registers callback on timeout event', () => {
+      const res = createResponse();
+      const cb = jest.fn();
+      res.setTimeout(1000, cb);
+      expect(res.listenerCount('timeout')).toBe(1);
+      res.emit('timeout');
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    test('setTimeout() without callback does not add timeout listener', () => {
+      const res = createResponse();
+      res.setTimeout(1000);
+      expect(res.listenerCount('timeout')).toBe(0);
+    });
+
+    test('setTimeout() calls socket.setTimeout when socket is already assigned', () => {
+      const res = createResponse();
+      const mockSocket = { setTimeout: jest.fn() };
+      res.socket = mockSocket;
+      res.setTimeout(5000);
+      expect(mockSocket.setTimeout).toHaveBeenCalledWith(5000);
+    });
+
+    test('setTimeout() defers socket.setTimeout via once("socket") when no socket yet', () => {
+      const res = createResponse();
+      res.setTimeout(3000);
+      // No socket yet, so a 'socket' listener should be queued
+      expect(res.listenerCount('socket')).toBe(1);
+      // Emit socket event with a mock
+      const mockSocket = { setTimeout: jest.fn() };
+      res.emit('socket', mockSocket);
+      expect(mockSocket.setTimeout).toHaveBeenCalledWith(3000);
+    });
+  });
+
+  describe('flushHeaders()', () => {
+    test('flushHeaders() calls _implicitHeader if headers not yet sent', () => {
+      const res = createResponse();
+      // Before flushHeaders, _header should be falsy
+      expect(res._header).toBeFalsy();
+      res.flushHeaders();
+      // After flushHeaders, _header should be truthy (headers have been stored)
+      expect(res._header).toBeTruthy();
+    });
+
+    test('flushHeaders() sets headersSent to true', () => {
+      const res = createResponse();
+      expect(res.headersSent).toBe(false);
+      res.flushHeaders();
+      expect(res.headersSent).toBe(true);
+    });
+
+    test('flushHeaders() does not call _implicitHeader if headers already sent', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      const spy = jest.spyOn(res, '_implicitHeader');
+      res.flushHeaders();
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    test('flush() is an alias for flushHeaders()', () => {
+      const res = createResponse();
+      expect(res.flush).toBeDefined();
+      res.flush();
+      expect(res.headersSent).toBe(true);
+    });
+  });
+
+  describe('writeContinue()', () => {
+    test('writeContinue() sets _sent100 to true', () => {
+      const res = createResponse();
+      expect(res._sent100).toBe(false);
+      res.writeContinue();
+      expect(res._sent100).toBe(true);
+    });
+
+    test('writeContinue() accepts a callback parameter without throwing', () => {
+      const res = createResponse();
+      expect(() => res.writeContinue(() => {})).not.toThrow();
+      expect(res._sent100).toBe(true);
+    });
+  });
+
+  describe('writeProcessing()', () => {
+    test('writeProcessing() accepts a callback parameter without throwing', () => {
+      const res = createResponse();
+      expect(() => res.writeProcessing(() => {})).not.toThrow();
+    });
+
+    test('writeProcessing() can be called multiple times without error', () => {
+      const res = createResponse();
+      expect(() => {
+        res.writeProcessing();
+        res.writeProcessing();
+        res.writeProcessing();
+      }).not.toThrow();
+    });
+  });
 });
