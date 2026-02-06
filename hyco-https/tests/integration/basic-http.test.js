@@ -228,6 +228,37 @@ describeIf(config)('hyco-https basic HTTP requests', () => {
     expect(receivedBody).toBe(largeBody);
   }, 60000);
 
+  test('Empty GET request returns 200 OK with empty response body', async () => {
+    await startListener((req, res) => {
+      expect(req.method).toBe('GET');
+      res.writeHead(200);
+      res.end();
+    });
+
+    var result = await sendGet();
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toBe('');
+  }, 60000);
+
+  test('Empty POST request (no body) returns 200 OK with empty response body', async () => {
+    var receivedBody = '';
+
+    await startListener((req, res) => {
+      expect(req.method).toBe('POST');
+      req.setEncoding('utf-8');
+      req.on('data', (chunk) => { receivedBody += chunk; });
+      req.on('end', () => {
+        res.writeHead(200);
+        res.end();
+      });
+    });
+
+    var result = await sendPost(null);
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toBe('');
+    expect(receivedBody).toBe('');
+  }, 60000);
+
   test('Small POST with small response verifies round-trip data integrity', async () => {
     var requestBody = 'Request data 12345';
     var responseBody = 'Response data 67890';
