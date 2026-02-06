@@ -1,11 +1,11 @@
 /**
  * Parameter validation unit tests for hyco-websocket module.
  * Verifies that createRelayToken() throws or handles gracefully
- * when called with invalid inputs (null, undefined, empty URI).
+ * when called with invalid inputs (null, undefined, empty URI and key name).
  */
 'use strict';
 
-const WebSocketServer = require('../../lib/HybridConnectionsWebSocketServer');
+const WS = require('../../index');
 
 const VALID_URI = 'wss://contoso.servicebus.windows.net:443/$hc/mypath';
 const VALID_KEY_NAME = 'RootManageSharedAccessKey';
@@ -17,20 +17,44 @@ describe('hyco-websocket parameter validation', () => {
 
     test('throws when URI is null', () => {
       expect(() => {
-        WebSocketServer.createRelayToken(null, VALID_KEY_NAME, VALID_KEY);
+        WS.createRelayToken(null, VALID_KEY_NAME, VALID_KEY);
       }).toThrow();
     });
 
     test('throws when URI is undefined', () => {
       expect(() => {
-        WebSocketServer.createRelayToken(undefined, VALID_KEY_NAME, VALID_KEY);
+        WS.createRelayToken(undefined, VALID_KEY_NAME, VALID_KEY);
       }).toThrow();
     });
 
     test('throws when URI is empty string', () => {
       expect(() => {
-        WebSocketServer.createRelayToken('', VALID_KEY_NAME, VALID_KEY);
+        WS.createRelayToken('', VALID_KEY_NAME, VALID_KEY);
       }).toThrow();
+    });
+  });
+
+  describe('createRelayToken() with invalid key name', () => {
+
+    test('handles null key name gracefully (produces token with skn=null)', () => {
+      const token = WS.createRelayToken(VALID_URI, null, VALID_KEY);
+      expect(typeof token).toBe('string');
+      expect(token).toContain('SharedAccessSignature');
+      expect(token).toContain('skn=null');
+    });
+
+    test('handles undefined key name gracefully (produces token with skn=undefined)', () => {
+      const token = WS.createRelayToken(VALID_URI, undefined, VALID_KEY);
+      expect(typeof token).toBe('string');
+      expect(token).toContain('SharedAccessSignature');
+      expect(token).toContain('skn=undefined');
+    });
+
+    test('handles empty string key name gracefully (produces token with skn=)', () => {
+      const token = WS.createRelayToken(VALID_URI, '', VALID_KEY);
+      expect(typeof token).toBe('string');
+      expect(token).toContain('SharedAccessSignature');
+      expect(token).toMatch(/skn=$/);
     });
   });
 });
