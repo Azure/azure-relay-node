@@ -259,6 +259,103 @@ describeIf(config)('hyco-https basic HTTP requests', () => {
     expect(receivedBody).toBe('');
   }, 60000);
 
+  /**
+   * Helper to send a chunked HTTPS POST request through the relay using multiple write() calls.
+   * The requestBody is split into the given number of chunks and sent via separate write() calls.
+   * Returns a promise that resolves with { statusCode, body }.
+   */
+  function sendChunkedPost(requestBody, numChunks, headers) {
+    return new Promise((resolve, reject) => {
+      var clientUri = https.createRelayHttpsUri(config.namespace, config.path);
+      var token = https.createRelayToken(clientUri, config.keyRule, config.key);
+      var path = config.path;
+      var reqPath = ((!path || path.length === 0 || path[0] !== '/') ? '/' : '') + path;
+
+      var reqHeaders = Object.assign({
+        'ServiceBusAuthorization': token,
+        'Content-Type': 'text/plain'
+      }, headers || {});
+
+      var req = https.request({
+        hostname: config.namespace,
+        path: reqPath,
+        port: 443,
+        method: 'POST',
+        headers: reqHeaders
+      }, (res) => {
+        var chunks = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => { chunks += chunk; });
+        res.on('end', () => {
+          resolve({ statusCode: res.statusCode, body: chunks, headers: res.headers });
+        });
+      });
+
+      req.on('error', (e) => {
+        reject(e);
+      });
+
+      // Split body into chunks and send via multiple write() calls
+      var chunkSize = Math.ceil(requestBody.length / numChunks);
+      for (var i = 0; i < numChunks; i++) {
+        var start = i * chunkSize;
+        var end = Math.min(start + chunkSize, requestBody.length);
+        if (start < requestBody.length) {
+          req.write(requestBody.substring(start, end));
+        }
+      }
+      req.end();
+    });
+  }
+
+  test('Chunked POST via multiple write() calls is received completely by listener', async () => {
+    var requestBody = 'chunk1-AAAA|chunk2-BBBB|chunk3-CCCC|chunk4-DDDD';
+    var receivedBody = '';
+
+    await startListener((req, res) => {
+      expect(req.method).toBe('POST');
+      req.setEncoding('utf-8');
+      req.on('data', (chunk) => { receivedBody += chunk; });
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+      });
+    });
+
+    var result = await sendChunkedPost(requestBody, 4);
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toBe('OK');
+    expect(receivedBody).toBe(requestBody);
+    expect(receivedBody.length).toBe(requestBody.length);
+  }, 60000);
+
+  test('Chunked POST with large (65KB+) body via multiple write() calls verifies integrity', async () => {
+    var size = 68000;
+    var pattern = 'ABCDEFGHIJ';
+    var largeBody = '';
+    while (largeBody.length < size) {
+      largeBody += pattern;
+    }
+    largeBody = largeBody.substring(0, size);
+    var receivedBody = '';
+
+    await startListener((req, res) => {
+      expect(req.method).toBe('POST');
+      req.setEncoding('utf-8');
+      req.on('data', (chunk) => { receivedBody += chunk; });
+      req.on('end', () => {
+        res.writeHead(200);
+        res.end('received');
+      });
+    });
+
+    var result = await sendChunkedPost(largeBody, 8);
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toBe('received');
+    expect(receivedBody.length).toBe(size);
+    expect(receivedBody).toBe(largeBody);
+  }, 60000);
+
   test('Small POST with small response verifies round-trip data integrity', async () => {
     var requestBody = 'Request data 12345';
     var responseBody = 'Response data 67890';
