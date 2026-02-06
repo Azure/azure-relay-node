@@ -146,6 +146,55 @@ replaced with the correct values for namespace, path, and token using a template
     </script>
 ``` 
 
+## Testing
+
+The SDK includes a comprehensive test suite built with **Jest**, organized into unit tests (no Azure dependency) and integration tests (require a live Azure Relay namespace).
+
+### Prerequisites
+
+- **Node.js** 10+
+- Install dependencies: `npm install`
+- For integration tests, an Azure Relay namespace with a Hybrid Connection endpoint and SAS credentials
+
+### Running Tests
+
+```bash
+# Run all tests (unit + integration)
+npm test
+
+# Run only unit tests (no Azure dependency)
+npm test -- --testPathPattern=unit
+
+# Run only integration tests (requires Azure credentials)
+npm test -- --testPathPattern=integration
+```
+
+### Environment Variables for Integration Tests
+
+Integration tests require the following environment variables. Tests skip gracefully if these are not set.
+
+| Variable | Description |
+|---|---|
+| `RELAY_NAMESPACE` | Azure Relay namespace (e.g., `contoso.servicebus.windows.net`) |
+| `RELAY_PATH` | Hybrid Connection path name |
+| `RELAY_KEYRULE` | SAS key rule name (e.g., `RootManageSharedAccessKey`) |
+| `RELAY_KEY` | SAS key value |
+
+The legacy `SB_HC_NAMESPACE`, `SB_HC_PATH`, `SB_HC_KEYRULE`, `SB_HC_KEY` variable names are also supported.
+
+### Test Organization
+
+| Directory | Description |
+|---|---|
+| `hyco-https/tests/unit/` | hyco-https unit tests (OutgoingMessage, IncomingMessage, error codes, token generation, parameter validation) |
+| `hyco-https/tests/integration/` | hyco-https integration tests (HTTP verbs, status codes, headers, query strings, concurrent requests) |
+| `hyco-websocket/tests/unit/` | hyco-websocket unit tests (WebSocketFrame, W3C WebSocket, request handling, regressions) |
+| `hyco-websocket/tests/integration/` | hyco-websocket integration tests (connectivity, accept/reject, server lifecycle, token renewal) |
+| `hyco-ws/tests/unit/` | hyco-ws unit tests (server options, close, reconnection backoff, token renewal) |
+| `hyco-ws/tests/integration/` | hyco-ws integration tests (connectivity, shutdown, concurrent clients, large data, auth errors, HTTP request mode) |
+| `test-utils/tests/unit/` | Shared test utility and cross-module consistency tests |
+| `test-utils/tests/integration/` | Cross-module interoperability tests |
+
 ## packages
 
 The README documents for the two includes packages discuss the particular additions made 
