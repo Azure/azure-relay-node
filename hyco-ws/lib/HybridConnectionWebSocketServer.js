@@ -8,10 +8,10 @@ const WebSocket = require('ws');
 const url = require('url');
 const moment = require('moment');
 
-// slightly awful workaround to pull submodules
-var wsc = require.cache[require.resolve('ws')]
-const Extensions = wsc.require('./lib/Extensions');
-const PerMessageDeflate = wsc.require('./lib/PerMessageDeflate');
+// Pull ws submodules using path relative to ws package
+var wsDir = require('path').dirname(require.resolve('ws'));
+const Extensions = require(require('path').join(wsDir, 'lib', 'extension'));
+const PerMessageDeflate = require(require('path').join(wsDir, 'lib', 'permessage-deflate'));
 
 var isDefinedAndNonNull = function(options, key) {
   return typeof options[key] != 'undefined' && options[key] !== null;
