@@ -84,4 +84,19 @@ describe('hyco-ws parameter validation', () => {
       expect(token).toContain('skn=' + VALID_KEY_NAME);
     });
   });
+
+  describe('createRelayToken() with negative expiration', () => {
+
+    test('handles negative expiration gracefully (produces token with past expiry)', () => {
+      const before = Math.floor(Date.now() / 1000);
+      const token = WS.createRelayToken(VALID_URI, VALID_KEY_NAME, VALID_KEY, -60);
+      expect(typeof token).toBe('string');
+      expect(token).toContain('SharedAccessSignature');
+      // The se field should be in the past (current time minus 60 seconds)
+      const seMatch = token.match(/se=(\d+)/);
+      expect(seMatch).not.toBeNull();
+      const se = parseInt(seMatch[1], 10);
+      expect(se).toBeLessThan(before);
+    });
+  });
 });
