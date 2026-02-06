@@ -277,4 +277,60 @@ describe('hyco-https ServerResponse', () => {
       expect(names).not.toContain('x-remove');
     });
   });
+
+  describe('ERR_HTTP_HEADERS_SENT after writeHead() or body writes', () => {
+    test('setHeader() after writeHead() throws ERR_HTTP_HEADERS_SENT', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      expect(() => res.setHeader('X-Late', 'value')).toThrow(/Cannot set headers after they are sent to the client/);
+    });
+
+    test('removeHeader() after writeHead() throws ERR_HTTP_HEADERS_SENT', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      res.writeHead(200);
+      expect(() => res.removeHeader('X-Test')).toThrow(/Cannot remove headers after they are sent to the client/);
+    });
+
+    test('setHeader() after writeHead() throws Error with code ERR_HTTP_HEADERS_SENT', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      try {
+        res.setHeader('X-Late', 'value');
+        expect(true).toBe(false); // should not reach here
+      } catch (e) {
+        expect(e.code).toBe('ERR_HTTP_HEADERS_SENT');
+      }
+    });
+
+    test('removeHeader() after writeHead() throws Error with code ERR_HTTP_HEADERS_SENT', () => {
+      const res = createResponse();
+      res.setHeader('X-Existing', 'val');
+      res.writeHead(200);
+      try {
+        res.removeHeader('X-Existing');
+        expect(true).toBe(false); // should not reach here
+      } catch (e) {
+        expect(e.code).toBe('ERR_HTTP_HEADERS_SENT');
+      }
+    });
+
+    test('headersSent is true after writeHead()', () => {
+      const res = createResponse();
+      expect(res.headersSent).toBe(false);
+      res.writeHead(200);
+      expect(res.headersSent).toBe(true);
+    });
+
+    test('setHeader() before writeHead() does not throw', () => {
+      const res = createResponse();
+      expect(() => res.setHeader('X-Before', 'value')).not.toThrow();
+    });
+
+    test('removeHeader() before writeHead() does not throw', () => {
+      const res = createResponse();
+      res.setHeader('X-Before', 'value');
+      expect(() => res.removeHeader('X-Before')).not.toThrow();
+    });
+  });
 });

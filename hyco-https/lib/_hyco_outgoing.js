@@ -401,6 +401,10 @@ function _storeHeader(statusCode, statusMessage, headers) {
   // wait until the first body chunk, or close(), is sent to flush,
   // UNLESS we're sending Expect: 100-continue.
   if (state.expect) this._send('');
+
+  // Mark that headers have been stored so that setHeader/removeHeader
+  // will throw ERR_HTTP_HEADERS_SENT after this point.
+  this._header = true;
 }
 
 function storeHeader(self, state, key, value, validate) {
