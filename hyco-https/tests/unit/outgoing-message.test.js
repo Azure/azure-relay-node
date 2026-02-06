@@ -128,4 +128,90 @@ describe('hyco-https ServerResponse', () => {
       expect(() => res.writeHead(999)).not.toThrow();
     });
   });
+
+  describe('setHeader/getHeader/hasHeader/removeHeader', () => {
+    test('setHeader() stores a header retrievable by getHeader()', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      expect(res.getHeader('X-Test')).toBe('value');
+    });
+
+    test('getHeader() is case-insensitive', () => {
+      const res = createResponse();
+      res.setHeader('X-Custom-Header', 'hello');
+      expect(res.getHeader('x-custom-header')).toBe('hello');
+      expect(res.getHeader('X-CUSTOM-HEADER')).toBe('hello');
+    });
+
+    test('hasHeader() returns true for a set header', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      expect(res.hasHeader('X-Test')).toBe(true);
+    });
+
+    test('hasHeader() returns false for a header that was not set', () => {
+      const res = createResponse();
+      expect(res.hasHeader('X-Missing')).toBe(false);
+    });
+
+    test('hasHeader() is case-insensitive', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      expect(res.hasHeader('x-test')).toBe(true);
+      expect(res.hasHeader('X-TEST')).toBe(true);
+    });
+
+    test('removeHeader() removes a previously set header', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      expect(res.hasHeader('X-Test')).toBe(true);
+      res.removeHeader('X-Test');
+      expect(res.hasHeader('X-Test')).toBe(false);
+      expect(res.getHeader('X-Test')).toBeUndefined();
+    });
+
+    test('removeHeader() is case-insensitive', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'value');
+      res.removeHeader('x-test');
+      expect(res.hasHeader('X-Test')).toBe(false);
+    });
+
+    test('setHeader() overwrites existing header value', () => {
+      const res = createResponse();
+      res.setHeader('X-Test', 'old');
+      res.setHeader('X-Test', 'new');
+      expect(res.getHeader('X-Test')).toBe('new');
+    });
+
+    test('setHeader() supports array values', () => {
+      const res = createResponse();
+      res.setHeader('Set-Cookie', ['a=1', 'b=2']);
+      expect(res.getHeader('Set-Cookie')).toEqual(['a=1', 'b=2']);
+    });
+
+    test('getHeader() returns undefined for unset header', () => {
+      const res = createResponse();
+      expect(res.getHeader('X-Missing')).toBeUndefined();
+    });
+
+    test('multiple headers can be set and retrieved independently', () => {
+      const res = createResponse();
+      res.setHeader('X-One', '1');
+      res.setHeader('X-Two', '2');
+      res.setHeader('X-Three', '3');
+      expect(res.getHeader('X-One')).toBe('1');
+      expect(res.getHeader('X-Two')).toBe('2');
+      expect(res.getHeader('X-Three')).toBe('3');
+    });
+
+    test('removeHeader() does not affect other headers', () => {
+      const res = createResponse();
+      res.setHeader('X-Keep', 'keep');
+      res.setHeader('X-Remove', 'remove');
+      res.removeHeader('X-Remove');
+      expect(res.getHeader('X-Keep')).toBe('keep');
+      expect(res.hasHeader('X-Remove')).toBe(false);
+    });
+  });
 });
