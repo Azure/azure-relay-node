@@ -2,6 +2,7 @@
 
 const util = require('util');
 const EventEmitter = require('events');
+const Stream = require('stream');
 const http = require('http');
 const crypto = require('crypto');
 const WebSocket = require('ws');
@@ -60,6 +61,7 @@ function HybridConnectionsWebSocketServer(options, callback) {
   this.path = options.path;
   this.clients = [];
   this._reconnectDelayIndex = -1;
+  this.pendingRequest = null;
 
   connectControlChannel(this);
 }
@@ -163,9 +165,17 @@ function connectControlChannel(server) {
   }
 
   server.controlChannel.onmessage = function(event) {
+    if (server.pendingRequest != null) {
+      server.pendingRequest.handleBody(event.data);
+      server.pendingRequest = null;
+      return;
+    }
+
     var message = JSON.parse(event.data);
     if (isDefinedAndNonNull(message, 'accept')) {
       accept(server, message);
+    } else if (isDefinedAndNonNull(message, 'request')) {
+      controlChannelRequest(server, message);
     }
   };
 
@@ -186,6 +196,171 @@ function connectControlChannel(server) {
       }
     },
     tokenRenewDuration.asMilliseconds());
+  }
+}
+
+/**
+ * Minimal IncomingMessage for HTTP requests received over the control channel.
+ * Implements a Readable stream so request body data can be consumed.
+ */
+function RelayIncomingMessage(message, controlChannel) {
+  Stream.Readable.call(this);
+  this.socket = controlChannel;
+  this.connection = controlChannel;
+  this.httpVersion = '1.1';
+  this.httpVersionMajor = 1;
+  this.httpVersionMinor = 1;
+  this.complete = false;
+  this.headers = {};
+  this.rawHeaders = [];
+  this.trailers = {};
+  this.rawTrailers = [];
+  this.readable = true;
+  this.aborted = false;
+
+  this.url = message.request.requestTarget;
+  this.method = message.request.method;
+
+  if (message.request.requestHeaders) {
+    for (var header in message.request.requestHeaders) {
+      this.headers[header.toLowerCase()] = message.request.requestHeaders[header];
+    }
+  }
+}
+util.inherits(RelayIncomingMessage, Stream.Readable);
+
+RelayIncomingMessage.prototype._read = function() {};
+
+RelayIncomingMessage.prototype.handleBody = function(data) {
+  var buf = (typeof data === 'string') ? Buffer.from(data) : data;
+  this.push(buf);
+  this.push(null);
+};
+
+/**
+ * Minimal ServerResponse for HTTP requests received over the control channel.
+ * Supports writeHead(), write(), end() to send response back via the control channel.
+ */
+function RelayServerResponse(req) {
+  Stream.call(this);
+  this.statusCode = 200;
+  this.statusMessage = 'OK';
+  this._headers = {};
+  this._hasBody = false;
+  this._headerSent = false;
+  this.finished = false;
+  this.headersSent = false;
+  this.requestId = null;
+  this._controlChannel = null;
+  this._bodyChunks = [];
+  this._req = req;
+}
+util.inherits(RelayServerResponse, Stream);
+
+RelayServerResponse.prototype.writeHead = function writeHead(statusCode, reason, obj) {
+  if (typeof reason === 'object' && reason !== null) {
+    obj = reason;
+    reason = undefined;
+  }
+  this.statusCode = statusCode;
+  if (reason !== undefined) {
+    this.statusMessage = reason;
+  }
+  if (obj) {
+    for (var k in obj) {
+      this._headers[k.toLowerCase()] = obj[k];
+    }
+  }
+};
+
+RelayServerResponse.prototype.setHeader = function setHeader(name, value) {
+  this._headers[name.toLowerCase()] = value;
+};
+
+RelayServerResponse.prototype.getHeader = function getHeader(name) {
+  return this._headers[name.toLowerCase()];
+};
+
+RelayServerResponse.prototype.write = function write(chunk, encoding) {
+  if (typeof chunk === 'string') {
+    chunk = Buffer.from(chunk, encoding || 'utf8');
+  }
+  this._hasBody = true;
+  this._bodyChunks.push(chunk);
+  return true;
+};
+
+RelayServerResponse.prototype.end = function end(chunk, encoding, callback) {
+  if (typeof chunk === 'function') {
+    callback = chunk;
+    chunk = null;
+  } else if (typeof encoding === 'function') {
+    callback = encoding;
+    encoding = null;
+  }
+
+  if (this.finished) return this;
+
+  if (chunk) {
+    this.write(chunk, encoding);
+  }
+
+  // Build and send the response JSON
+  var response = { response: {
+    requestId: this.requestId,
+    statusCode: this.statusCode,
+    statusDescription: this.statusMessage,
+    responseHeaders: this._headers,
+    body: this._hasBody
+  }};
+
+  var channel = this._controlChannel;
+  if (channel && channel.readyState === WebSocket.OPEN) {
+    channel.send(JSON.stringify(response), { binary: false });
+    if (this._hasBody) {
+      var body = Buffer.concat(this._bodyChunks);
+      channel.send(body, { binary: true });
+    }
+  }
+
+  this.finished = true;
+  this.headersSent = true;
+
+  if (typeof callback === 'function') {
+    callback();
+  }
+
+  return this;
+};
+
+/**
+ * Handle an HTTP request message received on the control channel.
+ */
+function controlChannelRequest(server, message) {
+  if (message.request.method) {
+    var req = new RelayIncomingMessage(message, server.controlChannel);
+    if (message.request.body === true) {
+      server.pendingRequest = req;
+    } else {
+      req.push(null);
+    }
+
+    var res = new RelayServerResponse(req);
+    res.requestId = message.request.id;
+    res._controlChannel = server.controlChannel;
+
+    try {
+      server.emit('request', req, res);
+    } catch (err) {
+      if (!res.finished) {
+        try {
+          res.writeHead(500);
+          res.end();
+        } catch (writeErr) {
+          // ignore write errors during error recovery
+        }
+      }
+    }
   }
 }
 
