@@ -6,7 +6,7 @@
 'use strict';
 
 var EventEmitter = require('events');
-var testUtils = require('../index');
+var testUtils = require('../../index');
 var createRelayConfig = testUtils.createRelayConfig;
 var safeClose = testUtils.safeClose;
 var createBuffer = testUtils.createBuffer;

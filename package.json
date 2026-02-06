@@ -5,6 +5,11 @@
         "hyco-websocket",
         "hyco-ws"
     ],
+    "scripts": {
+        "test": "jest --runInBand",
+        "test:unit": "jest --runInBand --testPathPattern=unit",
+        "test:integration": "jest --runInBand --testPathPattern=integration"
+    },
     "devDependencies": {
         "jest": "^23.6.0"
     }
