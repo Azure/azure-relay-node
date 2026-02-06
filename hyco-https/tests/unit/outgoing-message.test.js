@@ -333,4 +333,65 @@ describe('hyco-https ServerResponse', () => {
       expect(() => res.removeHeader('X-Before')).not.toThrow();
     });
   });
+
+  describe('write()', () => {
+    test('write() with a string argument buffers the data', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      res.write('hello world');
+      // Data is buffered in output array (preamble JSON + data)
+      expect(res.output.length).toBeGreaterThanOrEqual(1);
+      const hasStringData = res.output.some(item => item === 'hello world');
+      expect(hasStringData).toBe(true);
+    });
+
+    test('write() with a Buffer argument buffers the data', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      const buf = Buffer.from('buffer data');
+      res.write(buf);
+      expect(res.output.length).toBeGreaterThanOrEqual(1);
+      const hasBufferData = res.output.some(item =>
+        Buffer.isBuffer(item) && item.equals(buf)
+      );
+      expect(hasBufferData).toBe(true);
+    });
+
+    test('write() with string and encoding argument buffers the data', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      res.write('encoded text', 'utf8');
+      expect(res.output.length).toBeGreaterThanOrEqual(1);
+      const hasData = res.output.some(item => item === 'encoded text');
+      expect(hasData).toBe(true);
+    });
+
+    test('write() calls _implicitHeader() if writeHead() was not called', () => {
+      const res = createResponse();
+      // write() without calling writeHead() first should trigger _implicitHeader
+      res.write('auto-header');
+      expect(res.statusCode).toBe(200);
+      expect(res._headerSent).toBe(true);
+    });
+
+    test('write() throws ERR_INVALID_ARG_TYPE for non-string non-Buffer chunk', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      expect(() => res.write(12345)).toThrow(/first argument/);
+    });
+
+    test('write() returns true for empty string (no-op)', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      const ret = res.write('');
+      expect(ret).toBe(true);
+    });
+
+    test('write() returns true for empty Buffer (no-op)', () => {
+      const res = createResponse();
+      res.writeHead(200);
+      const ret = res.write(Buffer.alloc(0));
+      expect(ret).toBe(true);
+    });
+  });
 });
