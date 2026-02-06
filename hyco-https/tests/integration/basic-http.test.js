@@ -356,6 +356,70 @@ describeIf(config)('hyco-https basic HTTP requests', () => {
     expect(receivedBody).toBe(largeBody);
   }, 60000);
 
+  test('Stream piping to response delivers complete data to client', async () => {
+    var Stream = require('stream');
+    var streamData = 'Stream chunk data repeated. ';
+    var fullStreamContent = '';
+    var chunkCount = 100;
+    for (var i = 0; i < chunkCount; i++) {
+      fullStreamContent += streamData;
+    }
+
+    await startListener((req, res) => {
+      var readStream = new Stream.Readable({
+        read() {}
+      });
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      readStream.pipe(res);
+
+      // Push chunks into the readable stream
+      for (var i = 0; i < chunkCount; i++) {
+        readStream.push(streamData);
+      }
+      readStream.push(null); // signal end of stream
+    });
+
+    var result = await sendGet();
+    expect(result.statusCode).toBe(200);
+    expect(result.body.length).toBe(fullStreamContent.length);
+    expect(result.body).toBe(fullStreamContent);
+  }, 60000);
+
+  test('Stream piping large (65KB+) data to response delivers complete data to client', async () => {
+    var Stream = require('stream');
+    var pattern = 'ABCDEFGHIJ';
+    var kb = '';
+    for (var i = 0; i < 1024; i++) {
+      kb += pattern[i % pattern.length];
+    }
+    // Push 1KB chunks, 68 times = ~68KB
+    var chunkCount = 68;
+    var expectedBody = '';
+    for (var j = 0; j < chunkCount; j++) {
+      expectedBody += kb;
+    }
+
+    await startListener((req, res) => {
+      var readStream = new Stream.Readable({
+        read() {}
+      });
+
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      readStream.pipe(res);
+
+      for (var j = 0; j < chunkCount; j++) {
+        readStream.push(kb);
+      }
+      readStream.push(null);
+    });
+
+    var result = await sendGet();
+    expect(result.statusCode).toBe(200);
+    expect(result.body.length).toBe(expectedBody.length);
+    expect(result.body).toBe(expectedBody);
+  }, 60000);
+
   test('Small POST with small response verifies round-trip data integrity', async () => {
     var requestBody = 'Request data 12345';
     var responseBody = 'Response data 67890';
