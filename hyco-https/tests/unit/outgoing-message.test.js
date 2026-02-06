@@ -394,4 +394,112 @@ describe('hyco-https ServerResponse', () => {
       expect(ret).toBe(true);
     });
   });
+
+  describe('end()', () => {
+    // Helper: stub _assignSocket to avoid real WebSocket connection attempts
+    function stubSocket(res) {
+      res._assignSocket = function() {};
+    }
+
+    test('end() with no arguments marks response as finished', () => {
+      const res = createResponse();
+      stubSocket(res);
+      expect(res.finished).toBe(false);
+      res.end();
+      expect(res.finished).toBe(true);
+    });
+
+    test('end() returns the response object (this)', () => {
+      const res = createResponse();
+      stubSocket(res);
+      const ret = res.end();
+      expect(ret).toBe(res);
+    });
+
+    test('end() with no arguments calls _implicitHeader if writeHead() not called', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.end();
+      // _implicitHeader calls writeHead(200), so statusCode should be 200 and _headerSent true
+      expect(res.statusCode).toBe(200);
+      expect(res._headerSent).toBe(true);
+    });
+
+    test('end(chunk) writes the chunk and marks response as finished', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      res.end('final chunk');
+      expect(res.finished).toBe(true);
+      expect(res._hasBody).toBe(true);
+      const hasChunkData = res.output.some(item => item === 'final chunk');
+      expect(hasChunkData).toBe(true);
+    });
+
+    test('end(chunk) with Buffer writes the Buffer and marks response as finished', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      const buf = Buffer.from('buffer end');
+      res.end(buf);
+      expect(res.finished).toBe(true);
+      expect(res._hasBody).toBe(true);
+    });
+
+    test('end(chunk, encoding) applies encoding and marks response as finished', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      res.end('encoded end', 'utf8');
+      expect(res.finished).toBe(true);
+      expect(res._hasBody).toBe(true);
+    });
+
+    test('end(callback) registers callback on finish event when chunk is a function', () => {
+      const res = createResponse();
+      stubSocket(res);
+      const cb = jest.fn();
+      res.end(cb);
+      expect(res.finished).toBe(true);
+      // callback is registered as a 'finish' listener
+      expect(res.listenerCount('finish')).toBe(1);
+    });
+
+    test('end(chunk, callback) writes chunk and registers callback', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      const cb = jest.fn();
+      res.end('data', cb);
+      expect(res.finished).toBe(true);
+      expect(res.listenerCount('finish')).toBe(1);
+    });
+
+    test('end(chunk, encoding, callback) writes chunk with encoding and registers callback', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      const cb = jest.fn();
+      res.end('data', 'utf8', cb);
+      expect(res.finished).toBe(true);
+      expect(res.listenerCount('finish')).toBe(1);
+    });
+
+    test('end() is a no-op when called after response is already finished', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.end();
+      expect(res.finished).toBe(true);
+      // Calling end() again should return this without error
+      const ret = res.end();
+      expect(ret).toBe(res);
+    });
+
+    test('end() throws ERR_INVALID_ARG_TYPE if chunk is not string or Buffer', () => {
+      const res = createResponse();
+      stubSocket(res);
+      res.writeHead(200);
+      expect(() => res.end(12345)).toThrow(/chunk/);
+    });
+  });
 });
