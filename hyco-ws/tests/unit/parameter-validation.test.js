@@ -62,4 +62,26 @@ describe('hyco-ws parameter validation', () => {
       expect(token).toMatch(/skn=$/);
     });
   });
+
+  describe('createRelayToken() with invalid key value', () => {
+
+    test('throws when key value is null', () => {
+      expect(() => {
+        WS.createRelayToken(VALID_URI, VALID_KEY_NAME, null);
+      }).toThrow();
+    });
+
+    test('throws when key value is undefined', () => {
+      expect(() => {
+        WS.createRelayToken(VALID_URI, VALID_KEY_NAME, undefined);
+      }).toThrow();
+    });
+
+    test('handles empty string key value gracefully (produces a token)', () => {
+      const token = WS.createRelayToken(VALID_URI, VALID_KEY_NAME, '');
+      expect(typeof token).toBe('string');
+      expect(token).toContain('SharedAccessSignature');
+      expect(token).toContain('skn=' + VALID_KEY_NAME);
+    });
+  });
 });
