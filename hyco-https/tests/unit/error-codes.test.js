@@ -1,9 +1,10 @@
 /**
- * Unit tests for hyco-https error code constructors from _hyco_errors.js.
- * Verifies that each error code constructor produces correct error objects
- * with proper code, message, name, and inheritance properties.
+ * Unit tests for hyco-https error code constructors from _hyco_errors.js
+ * and HTTP status code mapping table from HybridConnectionHttpsServer.js.
  * Covers REQ-UNIT-HTTPS-030: All error code constructors in _hyco_errors.js
  * MUST produce correct error objects.
+ * Covers REQ-UNIT-HTTPS-031: HTTP status code mapping table MUST contain
+ * valid codes and descriptions.
  */
 
 'use strict';
@@ -270,5 +271,80 @@ describe('hyco-https error code constructors', () => {
     it('throws ERR_INVALID_ARG_TYPE when options is not an object', () => {
       expect(() => new AssertionError('not an object')).toThrow(TypeError);
     });
+  });
+});
+
+// --- HTTP STATUS_CODES mapping table (REQ-UNIT-HTTPS-031) ---
+
+const { STATUS_CODES } = require('../../lib/HybridConnectionHttpsServer');
+
+describe('HTTP STATUS_CODES mapping table', () => {
+  const standardCodes = [
+    200, 201, 202, 204, 206,
+    301, 302, 304, 307, 308,
+    400, 401, 403, 404, 405, 408, 409, 410, 413, 414, 415, 429,
+    500, 501, 502, 503, 504
+  ];
+
+  it('exports the STATUS_CODES object', () => {
+    expect(STATUS_CODES).toBeDefined();
+    expect(typeof STATUS_CODES).toBe('object');
+  });
+
+  it('contains all standard HTTP status codes', () => {
+    for (const code of standardCodes) {
+      expect(STATUS_CODES).toHaveProperty(String(code));
+    }
+  });
+
+  it('all descriptions are non-empty strings', () => {
+    for (const [code, desc] of Object.entries(STATUS_CODES)) {
+      expect(typeof desc).toBe('string');
+      expect(desc.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('all codes are valid HTTP status codes (100-599)', () => {
+    for (const code of Object.keys(STATUS_CODES)) {
+      const num = Number(code);
+      expect(num).toBeGreaterThanOrEqual(100);
+      expect(num).toBeLessThanOrEqual(599);
+    }
+  });
+
+  it('contains 1xx informational codes', () => {
+    expect(STATUS_CODES[100]).toBe('Continue');
+    expect(STATUS_CODES[101]).toBe('Switching Protocols');
+  });
+
+  it('contains 2xx success codes', () => {
+    expect(STATUS_CODES[200]).toBe('OK');
+    expect(STATUS_CODES[201]).toBe('Created');
+    expect(STATUS_CODES[204]).toBe('No Content');
+  });
+
+  it('contains 3xx redirection codes', () => {
+    expect(STATUS_CODES[301]).toBe('Moved Permanently');
+    expect(STATUS_CODES[302]).toBe('Found');
+    expect(STATUS_CODES[304]).toBe('Not Modified');
+  });
+
+  it('contains 4xx client error codes', () => {
+    expect(STATUS_CODES[400]).toBe('Bad Request');
+    expect(STATUS_CODES[401]).toBe('Unauthorized');
+    expect(STATUS_CODES[403]).toBe('Forbidden');
+    expect(STATUS_CODES[404]).toBe('Not Found');
+    expect(STATUS_CODES[429]).toBe('Too Many Requests');
+  });
+
+  it('contains 5xx server error codes', () => {
+    expect(STATUS_CODES[500]).toBe('Internal Server Error');
+    expect(STATUS_CODES[501]).toBe('Not Implemented');
+    expect(STATUS_CODES[502]).toBe('Bad Gateway');
+    expect(STATUS_CODES[503]).toBe('Service Unavailable');
+  });
+
+  it('has at least 40 entries covering the HTTP specification', () => {
+    expect(Object.keys(STATUS_CODES).length).toBeGreaterThanOrEqual(40);
   });
 });

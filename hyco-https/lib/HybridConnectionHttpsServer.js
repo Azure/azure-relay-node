@@ -682,4 +682,4 @@ function abortConnection(message, status, reason) {
   });
 }
 
-module.exports = { Server, ServerResponse };
+module.exports = { Server, ServerResponse, STATUS_CODES };
