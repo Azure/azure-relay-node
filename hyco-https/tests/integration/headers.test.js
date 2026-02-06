@@ -204,6 +204,41 @@ describeIf(config)('hyco-https headers', () => {
     expect(result.headers['x-special-response']).toBe('value with spaces & symbols!@#$%');
   }, 60000);
 
+  test('Multiple Set-Cookie response headers are preserved', async () => {
+    await startListener((req, res) => {
+      res.writeHead(200, {
+        'Content-Type': 'text/plain',
+        'Set-Cookie': ['session=abc123; Path=/', 'lang=en; HttpOnly']
+      });
+      res.end('OK');
+    });
+
+    var result = await sendGet();
+    expect(result.statusCode).toBe(200);
+    var cookies = result.headers['set-cookie'];
+    expect(Array.isArray(cookies)).toBe(true);
+    expect(cookies.length).toBe(2);
+    expect(cookies).toContain('session=abc123; Path=/');
+    expect(cookies).toContain('lang=en; HttpOnly');
+  }, 60000);
+
+  test('sb-hc-* request headers are handled according to the relay protocol', async () => {
+    var receivedHeaders = null;
+
+    await startListener((req, res) => {
+      receivedHeaders = req.headers;
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('OK');
+    });
+
+    var result = await sendGet({
+      'X-Normal-Header': 'should-arrive'
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(receivedHeaders['x-normal-header']).toBe('should-arrive');
+  }, 60000);
+
   test('Request and response headers round-trip on POST with body', async () => {
     var receivedHeaders = null;
     var requestBody = 'test body content';
