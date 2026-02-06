@@ -199,6 +199,35 @@ describeIf(config)('hyco-https basic HTTP requests', () => {
     expect(result.body).toBe(largeBody);
   }, 60000);
 
+  test('Large (65KB+) POST body with empty response verifies listener receives full body', async () => {
+    // Generate a 68KB POST body with repeating pattern
+    var size = 68000;
+    var pattern = 'ABCDEFGHIJ';
+    var largeBody = '';
+    while (largeBody.length < size) {
+      largeBody += pattern;
+    }
+    largeBody = largeBody.substring(0, size);
+
+    var receivedBody = '';
+
+    await startListener((req, res) => {
+      expect(req.method).toBe('POST');
+      req.setEncoding('utf-8');
+      req.on('data', (chunk) => { receivedBody += chunk; });
+      req.on('end', () => {
+        res.writeHead(200);
+        res.end();
+      });
+    });
+
+    var result = await sendPost(largeBody);
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toBe('');
+    expect(receivedBody.length).toBe(size);
+    expect(receivedBody).toBe(largeBody);
+  }, 60000);
+
   test('Small POST with small response verifies round-trip data integrity', async () => {
     var requestBody = 'Request data 12345';
     var responseBody = 'Response data 67890';
