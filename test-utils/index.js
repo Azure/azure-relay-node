@@ -87,9 +87,67 @@ function describeIf(config) {
   return config ? describe : describe.skip;
 }
 
+/**
+ * Creates an echo listener callback for hyco-ws WebSocket servers.
+ * Accepts a WebSocket connection and echoes all received messages back to the sender.
+ *
+ * @param {object} [options] - Options for the echo listener
+ * @param {function} [options.onConnection] - Callback invoked when a connection is established
+ * @param {function} [options.onClose] - Callback invoked when a connection is closed
+ * @returns {function} A callback suitable for use with createRelayedServer or the 'connection' event
+ */
+function createEchoListener(options) {
+  if (!options) options = {};
+  return function (ws) {
+    if (typeof options.onConnection === 'function') {
+      options.onConnection(ws);
+    }
+    ws.on('message', function (msg) {
+      ws.send(msg);
+    });
+    ws.on('close', function () {
+      if (typeof options.onClose === 'function') {
+        options.onClose(ws);
+      }
+    });
+  };
+}
+
+/**
+ * Creates an echo listener for hyco-websocket servers.
+ * Handles both UTF-8 and binary message types using the websocket library's message format.
+ *
+ * @param {object} [options] - Options for the echo listener
+ * @param {function} [options.onConnection] - Callback invoked when a connection is established
+ * @param {function} [options.onClose] - Callback invoked when a connection is closed
+ * @returns {function} A callback suitable for use with the 'connect' event
+ */
+function createHycoWebSocketEchoListener(options) {
+  if (!options) options = {};
+  return function (connection) {
+    if (typeof options.onConnection === 'function') {
+      options.onConnection(connection);
+    }
+    connection.on('message', function (message) {
+      if (message.type === 'utf8') {
+        connection.sendUTF(message.utf8Data);
+      } else if (message.type === 'binary') {
+        connection.sendBytes(message.binaryData);
+      }
+    });
+    connection.on('close', function (reasonCode, description) {
+      if (typeof options.onClose === 'function') {
+        options.onClose(connection, reasonCode, description);
+      }
+    });
+  };
+}
+
 module.exports = {
   createRelayConfig: createRelayConfig,
   safeClose: safeClose,
   createBuffer: createBuffer,
-  describeIf: describeIf
+  describeIf: describeIf,
+  createEchoListener: createEchoListener,
+  createHycoWebSocketEchoListener: createHycoWebSocketEchoListener
 };

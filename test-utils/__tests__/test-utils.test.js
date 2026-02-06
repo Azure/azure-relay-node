@@ -5,11 +5,14 @@
 
 'use strict';
 
+var EventEmitter = require('events');
 var testUtils = require('../index');
 var createRelayConfig = testUtils.createRelayConfig;
 var safeClose = testUtils.safeClose;
 var createBuffer = testUtils.createBuffer;
 var describeIf = testUtils.describeIf;
+var createEchoListener = testUtils.createEchoListener;
+var createHycoWebSocketEchoListener = testUtils.createHycoWebSocketEchoListener;
 
 describe('createRelayConfig', function () {
   var originalEnv;
@@ -220,5 +223,162 @@ describe('describeIf', function () {
 
   test('returns describe.skip when config is null', function () {
     expect(describeIf(null)).toBe(describe.skip);
+  });
+});
+
+describe('createEchoListener', function () {
+  function createMockWs() {
+    var ws = new EventEmitter();
+    ws.sent = [];
+    ws.send = function (data) { ws.sent.push(data); };
+    return ws;
+  }
+
+  test('echoes text messages back to sender', function () {
+    var handler = createEchoListener();
+    var ws = createMockWs();
+    handler(ws);
+
+    ws.emit('message', 'hello world');
+    expect(ws.sent).toEqual(['hello world']);
+  });
+
+  test('echoes binary data back to sender', function () {
+    var handler = createEchoListener();
+    var ws = createMockWs();
+    handler(ws);
+
+    var buf = Buffer.from([1, 2, 3, 4]);
+    ws.emit('message', buf);
+    expect(ws.sent).toEqual([buf]);
+  });
+
+  test('echoes multiple messages in order', function () {
+    var handler = createEchoListener();
+    var ws = createMockWs();
+    handler(ws);
+
+    ws.emit('message', 'first');
+    ws.emit('message', 'second');
+    ws.emit('message', 'third');
+    expect(ws.sent).toEqual(['first', 'second', 'third']);
+  });
+
+  test('calls onConnection callback when connection is established', function () {
+    var connected = null;
+    var handler = createEchoListener({ onConnection: function (w) { connected = w; } });
+    var ws = createMockWs();
+    handler(ws);
+
+    expect(connected).toBe(ws);
+  });
+
+  test('calls onClose callback when connection is closed', function () {
+    var closed = null;
+    var handler = createEchoListener({ onClose: function (w) { closed = w; } });
+    var ws = createMockWs();
+    handler(ws);
+
+    ws.emit('close');
+    expect(closed).toBe(ws);
+  });
+
+  test('works without options', function () {
+    var handler = createEchoListener();
+    var ws = createMockWs();
+    handler(ws);
+
+    ws.emit('message', 'test');
+    ws.emit('close');
+    expect(ws.sent).toEqual(['test']);
+  });
+});
+
+describe('createHycoWebSocketEchoListener', function () {
+  function createMockConnection() {
+    var conn = new EventEmitter();
+    conn.sentUTF = [];
+    conn.sentBytes = [];
+    conn.sendUTF = function (data) { conn.sentUTF.push(data); };
+    conn.sendBytes = function (data) { conn.sentBytes.push(data); };
+    return conn;
+  }
+
+  test('echoes UTF-8 messages back to sender', function () {
+    var handler = createHycoWebSocketEchoListener();
+    var conn = createMockConnection();
+    handler(conn);
+
+    conn.emit('message', { type: 'utf8', utf8Data: 'hello world' });
+    expect(conn.sentUTF).toEqual(['hello world']);
+    expect(conn.sentBytes).toEqual([]);
+  });
+
+  test('echoes binary messages back to sender', function () {
+    var handler = createHycoWebSocketEchoListener();
+    var conn = createMockConnection();
+    handler(conn);
+
+    var buf = Buffer.from([1, 2, 3, 4]);
+    conn.emit('message', { type: 'binary', binaryData: buf });
+    expect(conn.sentBytes).toEqual([buf]);
+    expect(conn.sentUTF).toEqual([]);
+  });
+
+  test('echoes mixed message types in order', function () {
+    var handler = createHycoWebSocketEchoListener();
+    var conn = createMockConnection();
+    handler(conn);
+
+    conn.emit('message', { type: 'utf8', utf8Data: 'text' });
+    var buf = Buffer.from([5, 6]);
+    conn.emit('message', { type: 'binary', binaryData: buf });
+    conn.emit('message', { type: 'utf8', utf8Data: 'more text' });
+
+    expect(conn.sentUTF).toEqual(['text', 'more text']);
+    expect(conn.sentBytes).toEqual([buf]);
+  });
+
+  test('calls onConnection callback when connection is established', function () {
+    var connected = null;
+    var handler = createHycoWebSocketEchoListener({ onConnection: function (c) { connected = c; } });
+    var conn = createMockConnection();
+    handler(conn);
+
+    expect(connected).toBe(conn);
+  });
+
+  test('calls onClose callback with reasonCode and description', function () {
+    var closeArgs = null;
+    var handler = createHycoWebSocketEchoListener({
+      onClose: function (c, code, desc) { closeArgs = { conn: c, code: code, desc: desc }; }
+    });
+    var conn = createMockConnection();
+    handler(conn);
+
+    conn.emit('close', 1000, 'Normal closure');
+    expect(closeArgs.conn).toBe(conn);
+    expect(closeArgs.code).toBe(1000);
+    expect(closeArgs.desc).toBe('Normal closure');
+  });
+
+  test('works without options', function () {
+    var handler = createHycoWebSocketEchoListener();
+    var conn = createMockConnection();
+    handler(conn);
+
+    conn.emit('message', { type: 'utf8', utf8Data: 'test' });
+    conn.emit('close', 1000, 'done');
+    expect(conn.sentUTF).toEqual(['test']);
+  });
+
+  test('ignores unknown message types', function () {
+    var handler = createHycoWebSocketEchoListener();
+    var conn = createMockConnection();
+    handler(conn);
+
+    conn.emit('message', { type: 'unknown', data: 'something' });
+    expect(conn.sentUTF).toEqual([]);
+    expect(conn.sentBytes).toEqual([]);
   });
 });
