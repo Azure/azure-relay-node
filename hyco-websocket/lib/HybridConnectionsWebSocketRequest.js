@@ -14,7 +14,6 @@
  *  limitations under the License.
  ***********************************************************************/
 
-var crypto = require('crypto');
 var util = require('util');
 var url = require('url');
 var EventEmitter = require('events').EventEmitter;

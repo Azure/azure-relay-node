@@ -3,15 +3,14 @@
 const util = require('util');
 const EventEmitter = require('events');
 const http = require('http');
-const crypto = require('crypto');
 const WebSocket = require('ws');
 const url = require('url');
 const moment = require('moment');
 
 // slightly awful workaround to pull submodules
 var wsc = require.cache[require.resolve('ws')]
-const Extensions = wsc.require('./lib/Extensions');
-const PerMessageDeflate = wsc.require('./lib/PerMessageDeflate');
+const Extensions = wsc.require('./lib/extension');
+const PerMessageDeflate = wsc.require('./lib/permessage-deflate');
 
 var isDefinedAndNonNull = function(options, key) {
   return typeof options[key] != 'undefined' && options[key] !== null;

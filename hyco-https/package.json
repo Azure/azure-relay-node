@@ -14,11 +14,7 @@
     "url": "https://github.com/Azure/azure-relay-node.git"
   },
   "dependencies": {
-    "crypto": "latest",
-    "events": "latest",
-    "https": "latest",
     "moment": "^2.29.4",
-    "util": "latest",
     "ws": "^5.2.4"
   },
   "gypfile": true,

@@ -21,11 +21,7 @@
   },
   "dependencies": {
     "ws": "5.2.x",
-    "crypto": "latest",
-    "moment": "latest",
-    "util" : "latest",
-    "http" : "latest",
-    "events" : "latest"
+    "moment": "latest"
   },
   "gypfile": true
 }

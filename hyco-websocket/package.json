@@ -27,11 +27,7 @@
   },
   "dependencies": {
     "websocket": "latest",
-    "crypto": "latest",
-    "moment": "latest",
-    "url": "latest",
-    "events": "latest",
-    "querystring": "latest"
+    "moment": "latest"
   },
   "config": {
     "verbose": false

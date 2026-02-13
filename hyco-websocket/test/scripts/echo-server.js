@@ -20,10 +20,10 @@ var WebSocketServer = require('../../lib/HybridConnectionsWebSocketServer');
 
 var args = { /* defaults */
     debug: false,
-    ns : process.env.RELAY_NAMESPACE,
-    path : process.env.RELAY_PATH,
-    keyrule : process.env.RELAY_KEYRULE,
-    key : process.env.RELAY_KEY
+    ns : process.env.SB_HC_NAMESPACE,
+    path : process.env.SB_HC_PATH,
+    keyrule : process.env.SB_HC_KEYRULE,
+    key : process.env.SB_HC_KEY
 };
 
 /* Parse command line options */
