@@ -23,8 +23,7 @@ if (args.ns == null || args.path == null || args.keyrule == null || args.key == 
     var wss = WebSocket.createRelayedServer(
         {
             server : uri,
-            keyName: args.keyrule,
-            key: args.key
+            token: WebSocket.createRelayToken(uri, args.keyrule, args.key)
         },
         function(ws) {
             console.log('connection accepted');
