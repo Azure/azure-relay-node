@@ -3,7 +3,6 @@
 const util = require('util');
 const EventEmitter = require('events');
 const http = require('http');
-const crypto = require('crypto');
 const WebSocket = require('ws');
 const url = require('url');
 const moment = require('moment');
