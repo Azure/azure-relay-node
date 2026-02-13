@@ -19,7 +19,7 @@
     "https": "latest",
     "moment": "^2.29.4",
     "util": "latest",
-    "ws": "^7.4.6"
+    "ws": "^5.2.4"
   },
   "gypfile": true,
   "devDependencies": {
