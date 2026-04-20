@@ -203,6 +203,21 @@ to the 'connection' event.
  
 ##### relayedConnect
 
+Simply mirroring the `createRelayedServer` helper in function, `relayedConnect`
+creates a client connection and subscribes to the 'open' event on the 
+resulting socket.
+
+``` JavaScript
+    var uri = WebSocket.createRelaySendUri(ns, path);
+    WebSocket.relayedConnect(
+        uri,
+        WebSocket.createRelayToken(uri, keyrule, key),
+        function (socket) {
+            ...
+        }
+    );
+```
+
 ## How do I run the unit tests?
 
 ### Prerequisites
