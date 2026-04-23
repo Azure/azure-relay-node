@@ -29,7 +29,7 @@
     "moment": "latest"
   },
   "devDependencies": {
-    "jest": "^23.6.0"
+    "jest": "^30.3.0"
   },
   "gypfile": true
 }
