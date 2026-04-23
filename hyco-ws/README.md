@@ -217,3 +217,35 @@ resulting socket.
         }
     );
 ```
+
+## How do I run the unit tests?
+
+### Prerequisites
+
+- An **Azure Relay namespace** with a Hybrid Connection entity created (for live/integration tests)
+- Add the following to environment variables for live testing:
+
+
+| Variable | Description | Example |
+|---|---|---|
+| `RELAY_NAMESPACE` | Fully qualified namespace hostname | `mynamespace.servicebus.windows.net` |
+| `RELAY_PATH` | Hybrid Connection entity name | `myconnection` |
+| `RELAY_KEYRULE` | SAS policy name | `RootManageSharedAccessKey` |
+| `RELAY_KEY` | SAS policy key | `dGVzdGtleTE...` |
+
+### Running Tests
+
+Once you have completed the above, you can run `npm test` (or any of the below) from the `/hyco-ws` directory.
+
+```bash
+# Run all tests (unit + live)
+npm test
+
+# Run only unit tests (no Azure Relay connection needed)
+npm run test:unit
+
+# Run only live/integration tests (requires env vars above)
+npm run test:live
+```
+
+> **Note:** Live tests are automatically skipped with a descriptive message if the environment variables are not set. Unit tests (connectionStringBuilder, parameterValidation) run without any external dependencies.

@@ -19,9 +19,17 @@
     "type" : "git",
     "url" : "https://github.com/Azure/azure-relay-node.git"
   },
+  "scripts": {
+    "test": "jest --runInBand --config ./jest.config.js --detectOpenHandles",
+    "test:unit": "jest --runInBand --config ./jest.config.js --testPathPattern=\"(connectionStringBuilder|parameterValidation)\"",
+    "test:live": "jest --runInBand --forceExit --config ./jest.config.js --testPathPattern=\"(runtime|webSocket|hybridRequest)\""
+  },
   "dependencies": {
     "ws": "5.2.x",
     "moment": "latest"
+  },
+  "devDependencies": {
+    "jest": "^23.6.0"
   },
   "gypfile": true
 }
