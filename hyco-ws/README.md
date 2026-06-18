@@ -3,7 +3,7 @@
 ## Overview
 
 This Node package for Azure Relay Hybrid Connections is built on and extends the 
-['ws'](https://www.npmjs.com/package/ws) NPM package. This package 
+['ws'](https://www.npms.com/package/ws) NPM package. This package 
 re-exports all exports of that base package and adds new exports that enable 
 integration with the Azure Relay service's Hybrid Connections feature. 
 
@@ -74,7 +74,7 @@ URI can be used with any WebSocket client.
 - **id** (optional) - a tracking identifier that allows end-to-end diagnostics tracking of requests
 
 The **token** value is optional and should only be used when it is not possible to send HTTP 
-headers along with the WebSocket handshake as it is the case with the W3C WebSocket stack.                   
+headers along with the WebSocket handshake as it is the case with the W3C WebSocket stack.                  
 
 
 #### createRelayToken 
@@ -84,12 +84,12 @@ var token = createRelayToken([uri], [ruleName], [key], [[expirationSeconds]])
 
 Creates an Azure Relay Shared Access Signature (SAS) token for the given target URI, SAS rule, 
 and SAS rule key that is valid for the given number of seconds or for an hour from the current 
-instant if the expiry argunent is omitted.
+instant if the expiry argument is omitted.
 
 - **uri** (required) - the URI for which the token is to be issued. The URI will be normalized to 
                        using the http scheme and query string information will be stripped.
 - **ruleName** (required) - SAS rule name either for the entity represented by the given URI or 
-                            for the namespace represented by teh URI host-portion.
+                            for the namespace represented by the URI host-portion.
 - **key** (required) - valid key for the SAS rule. 
 - **expirationSeconds** (optional) - the number of seconds until the generated token should expire. 
                             The default is 1 hour (3600) if not specified.
@@ -194,7 +194,7 @@ the package exposes a simple helper function, which is also used in the samples:
             });       
     });
 ``` 
-
+ 
 var server = createRelayedServer([options], [connectCallback] )
 
 This method is simple syntactic sugar that calls the constructor to create a new 
