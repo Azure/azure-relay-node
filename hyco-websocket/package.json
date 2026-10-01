@@ -26,8 +26,8 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "websocket": "latest",
-    "moment": "latest"
+    "moment": "^2.31.0",
+    "websocket": "*"
   },
   "config": {
     "verbose": false
