@@ -683,7 +683,8 @@ OutgoingMessage.prototype._assignSocket = function _assignSocket() {
     // No socket assigned yet, check the message size to decide between the control channel or a new rendezvous
     if (isBufferSizeExceeded(this.outputSize)) {
       webSocket = new WS(this._rendezvousAddress, {
-        perMessageDeflate: false
+        perMessageDeflate: false,
+        followRedirects: false
       });
       webSocket.on('open', function() {
         thisPtr._flush();

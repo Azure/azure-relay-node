@@ -167,3 +167,10 @@ Constructor arguments:
 - **token** (required) - this argument *either* holds a previously issued token string *or* a callback
                          function that can be called to obtain such a token string. The callback option
                          is preferred as it allows token renewal.
+
+Rendezvous WebSocket connections only connect over `wss` on port 443 to the
+configured Relay hostname or to service-node hostnames in the same Azure cloud.
+For non-Azure endpoints, only the configured hostname is allowed. Rendezvous URLs
+containing credentials or fragments are rejected, and redirects are disabled.
+Invalid rendezvous addresses are reported to registered `error` listeners without
+opening a connection.

@@ -461,7 +461,7 @@ function connectControlChannel(server) {
  * accept a web socket upgrade
  */
 function accept(server, message) {
-  var address = message.accept.address;
+  var address = validateRendezvousAddress(server, message.accept.address);
   var req = { headers: {} };
   var headers = [];
 
@@ -470,7 +470,7 @@ function accept(server, message) {
   }
   // verify key presence
   if (!req.headers['sec-websocket-key']) {
-    abortConnection(message, 400, 'Bad Request');
+    abortConnection(address, 400, 'Bad Request');
     return;
   }
 
@@ -489,7 +489,7 @@ function accept(server, message) {
   try {
     extensionsOffer = Extensions.parse(req.headers['sec-websocket-extensions']);
   } catch (err) {
-    abortConnection(message, 400, 'Bad Request');
+    abortConnection(address, 400, 'Bad Request');
     return;
   }
 
@@ -501,7 +501,7 @@ function accept(server, message) {
     try {
       extensions = acceptExtensions.call(self, extensionsOffer);
     } catch (err) {
-      abortConnection(message, 400, 'Bad Request');
+      abortConnection(address, 400, 'Bad Request');
       return;
     }
 
@@ -519,7 +519,8 @@ function accept(server, message) {
     try {
       var client = new WebSocket(address, protocol, {
         headers: headers,
-        perMessageDeflate: false
+        perMessageDeflate: false,
+        followRedirects: false
       });
 
       client.on('error', function(event) {
@@ -553,12 +554,12 @@ function accept(server, message) {
       var callbackCalled = false;
       self.options.handleProtocols(protList, function(result, protocol) {
         callbackCalled = true;
-        if (!result) abortConnection(message, 401, 'Unauthorized');
+        if (!result) abortConnection(address, 401, 'Unauthorized');
         else completeHybiUpgrade2(protocol);
       });
       if (!callbackCalled) {
         // the handleProtocols handler never called our callback
-        abortConnection(message, 501, 'Could not process protocols');
+        abortConnection(address, 501, 'Could not process protocols');
       }
       return;
     } else {
@@ -590,7 +591,13 @@ function acceptExtensions(offer) {
  * accept a control-channel request
  */
 function controlChannelRequest(server, message) {
-  var address = message.request.address;
+  var address;
+  try {
+    address = validateRendezvousAddress(server, message.request.address);
+  } catch (err) {
+    emitServerError(server, err);
+    return;
+  }
   var req = { headers: {} };
 
   // handler to call when the connection sequence completes
@@ -616,7 +623,8 @@ function controlChannelRequest(server, message) {
     // execute the web socket rendezvous with the server
     try {
       var client = new WebSocket(address, {
-        perMessageDeflate: false
+        perMessageDeflate: false,
+        followRedirects: false
       });
       client.on('open', function() {
         
@@ -690,15 +698,33 @@ function requestChannelListener(server, requestChannel) {
   };
 }
 
-function abortConnection(message, status, reason) {
-  var address = message.accept && message.accept.address;
+function validateRendezvousAddress(server, address) {
   if (typeof address !== 'string' || address.length === 0) {
-    return;
+    throw new TypeError('Invalid Relay rendezvous address');
   }
 
-  var rejectUri = address + '&statusCode=' + status + '&statusDescription=' + encodeURIComponent(reason);
+  var rendezvous = new url.URL(address);
+  var listener = new url.URL(server.listenUri);
+  // Relay rendezvous hosts can differ from the namespace host, but not its Azure cloud.
+  var relayDomain = listener.hostname.match(/(?:^|\.)(servicebus\.(?:windows\.net|usgovcloudapi\.net|chinacloudapi\.cn|cloudapi\.de))$/);
+  if (rendezvous.protocol !== 'wss:' ||
+      (rendezvous.port && rendezvous.port !== '443') ||
+      rendezvous.username || rendezvous.password || rendezvous.hash ||
+      (rendezvous.hostname !== listener.hostname &&
+       (!relayDomain || !rendezvous.hostname.endsWith('.' + relayDomain[1])))) {
+    throw new TypeError('Invalid Relay rendezvous address');
+  }
 
-  var client = new WebSocket(rejectUri, { perMessageDeflate: false });
+  return rendezvous.href;
+}
+
+function abortConnection(address, status, reason) {
+  var rejectUri = address + '&sb-hc-statusCode=' + status + '&sb-hc-statusDescription=' + encodeURIComponent(reason);
+
+  var client = new WebSocket(rejectUri, {
+    perMessageDeflate: false,
+    followRedirects: false
+  });
   // The Relay fails the reject handshake once it has processed the rejection.
   client.on('error', function() {});
 }
