@@ -696,7 +696,7 @@ function abortConnection(message, status, reason) {
     return;
   }
 
-  var rejectUri = address + '&statusCode=' + status + '&statusDescription=' + encodeURIComponent(reason);
+  var rejectUri = address + '&sb-hc-statusCode=' + status + '&sb-hc-statusDescription=' + encodeURIComponent(reason);
 
   var client = new WebSocket(rejectUri, { perMessageDeflate: false });
   // The Relay fails the reject handshake once it has processed the rejection.

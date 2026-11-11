@@ -97,7 +97,7 @@ describe('control channel WebSocket accept', () => {
         expect(errors).toEqual([]);
         expect(WebSocket.instances.length).toBe(2);
         const rejectClient = WebSocket.instances[1];
-        expect(rejectClient.address).toBe(rendezvousAddress + '&statusCode=400&statusDescription=Bad%20Request');
+        expect(rejectClient.address).toBe(rendezvousAddress + '&sb-hc-statusCode=400&sb-hc-statusDescription=Bad%20Request');
         // the Relay fails the reject handshake; that must not crash the listener either
         expect(() => rejectClient.emit('error', new Error('Unexpected server response: 400'))).not.toThrow();
     });
