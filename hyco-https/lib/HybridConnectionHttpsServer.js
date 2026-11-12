@@ -12,8 +12,8 @@ const assert = require('assert');
 var https = require.cache[require.resolve('https')]
 const { IncomingMessage } = require('./_hyco_incoming');
 const { OutgoingMessage } = require('./_hyco_outgoing');
-//const Extensions = wsc.require('./lib/Extensions');
-//const PerMessageDeflate = wsc.require('./lib/PerMessageDeflate');
+const Extensions = require('ws/lib/extension');
+const PerMessageDeflate = require('ws/lib/permessage-deflate');
 
 const outHeadersKey = 'outHeadersKey';
 
@@ -412,11 +412,25 @@ function connectControlChannel(server) {
       return;
     }
 
-    var message = JSON.parse(event.data);
+    var message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (err) {
+      emitServerError(server, err);
+      return;
+    }
+
+    if (message === null || typeof message !== 'object') {
+      return;
+    }
     
     if (isDefinedAndNonNull(message, 'accept')) {
       // WebSocket rendezvous
-      accept(server, message);
+      try {
+        accept(server, message);
+      } catch (err) {
+        emitServerError(server, err);
+      }
     } else if (isDefinedAndNonNull(message, 'request')) {
       // HTTP request
       controlChannelRequest(server, message);
@@ -471,7 +485,13 @@ function accept(server, message) {
     req.headers['origin'];
 
   // handle extensions offer
-  var extensionsOffer = Extensions.parse(req.headers['sec-websocket-extensions']);
+  var extensionsOffer;
+  try {
+    extensionsOffer = Extensions.parse(req.headers['sec-websocket-extensions']);
+  } catch (err) {
+    abortConnection(message, 400, 'Bad Request');
+    return;
+  }
 
   // handler to call when the connection sequence completes
   var self = server;
@@ -533,12 +553,12 @@ function accept(server, message) {
       var callbackCalled = false;
       self.options.handleProtocols(protList, function(result, protocol) {
         callbackCalled = true;
-        if (!result) abortConnection(socket, 401, 'Unauthorized');
+        if (!result) abortConnection(message, 401, 'Unauthorized');
         else completeHybiUpgrade2(protocol);
       });
       if (!callbackCalled) {
         // the handleProtocols handler never called our callback
-        abortConnection(socket, 501, 'Could not process protocols');
+        abortConnection(message, 501, 'Could not process protocols');
       }
       return;
     } else {
@@ -671,14 +691,22 @@ function requestChannelListener(server, requestChannel) {
 }
 
 function abortConnection(message, status, reason) {
+  var address = message.accept && message.accept.address;
+  if (typeof address !== 'string' || address.length === 0) {
+    return;
+  }
 
-  var client = new WebSocketClient();
-  var rejectUri = message.address + '&statusCode=' + status + '&statusDescription=' + encodeURIComponent(reason);
+  var rejectUri = address + '&sb-hc-statusCode=' + status + '&sb-hc-statusDescription=' + encodeURIComponent(reason);
 
-  client.connect(rejectUri, null, null);
-  client.on('error', function(connection) {
-    this.emit('requestRejected', this);
-  });
+  var client = new WebSocket(rejectUri, { perMessageDeflate: false });
+  // The Relay fails the reject handshake once it has processed the rejection.
+  client.on('error', function() {});
+}
+
+function emitServerError(server, err) {
+  if (server.listenerCount('error') > 0) {
+    server.emit('error', err);
+  }
 }
 
 module.exports = { Server, ServerResponse };
